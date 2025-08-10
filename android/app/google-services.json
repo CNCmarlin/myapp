@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "131828018741",
+    "project_id": "simply-fit-no-more-stress",
+    "storage_bucket": "simply-fit-no-more-stress.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:131828018741:android:12762ae82679d8e8c20b7c",
+        "android_client_info": {
+          "package_name": "com.makermike99.simplyfit"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "131828018741-e07p0eem9ed7r8sscsd4vscvq0t671oi.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.makermike99.simplyfit",
+            "certificate_hash": "781a7b6a47555117d43646bb3bb1bfbf52ad81a7"
+          }
+        },
+        {
+          "client_id": "131828018741-s3d2scdh0v9kt3d2fjl09grqud3rrrrp.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDXP88GQsA5kBK-GAwSZtcMYmh4_P8STUI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "131828018741-s3d2scdh0v9kt3d2fjl09grqud3rrrrp.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,8 @@
+{
+  "firebase_hosting": {
+    "deploymentHostingUrl": "https://simply-fit-no-more-stress.web.app"
+  },
+  "cloud_run_deploy": {},
+  "gemini_api": {},
+  "secrets_manager": {}
+}

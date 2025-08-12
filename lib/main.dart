@@ -23,9 +23,9 @@ Future<void> main() async {
   await FirebaseAppCheck.instance.activate(
     // It will use the Debug Provider for debug builds...
     // ...and the Play Integrity provider for all release builds.
-    androidProvider: kDebugMode ? AndroidProvider.debug : AndroidProvider.playIntegrity,
+    androidProvider:
+        kDebugMode ? AndroidProvider.debug : AndroidProvider.playIntegrity,
   );
-
 
   runApp(
     MultiProvider(
@@ -41,6 +41,8 @@ Future<void> main() async {
         ChangeNotifierProvider(
           create: (context) => InsightsProvider(
             authService: context.read<AuthService>(),
+            // Pass the FirestoreService instance
+            firestoreService: context.read<FirestoreService>(),
           ),
         ),
 

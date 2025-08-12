@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
+import 'package:myapp/models/insight_data.dart';
 import '../models/workout_data.dart';
 import '../models/user_profile.dart';
 import '../models/meal_data.dart';
@@ -23,6 +24,27 @@ class FirestoreService {
     } catch (e) {
       print('Error getting workout program by ID: $e');
       return null;
+    }
+  }
+
+   // NEW: Method to securely fetch a stream of AI-generated insights.
+  Stream<List<Insight>> getInsightsStream(String userId) {
+    try {
+      return _db
+          .collection('userProfiles') // FIX: Corrected path from 'users'
+          .doc(userId)
+          .collection('insights')
+          .orderBy('generatedAt', descending: true)
+          .snapshots()
+          .map((snapshot) {
+        return snapshot.docs.map((doc) {
+          return Insight.fromMap(doc.data());
+        }).toList();
+      });
+    } catch (e) {
+      print('Error getting insights stream: $e');
+      // Return an empty stream in case of an error.
+      return Stream.value([]);
     }
   }
 

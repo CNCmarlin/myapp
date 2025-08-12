@@ -343,7 +343,7 @@ class _MacroIndicator extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        Text('${label}${unit.isNotEmpty ? ' ($unit)' : ''}'),
+        Text('$label${unit.isNotEmpty ? ' ($unit)' : ''}'),
       ],
     );
   }

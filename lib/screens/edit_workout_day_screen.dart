@@ -1,19 +1,17 @@
-// lib/screens/edit_workout_day_screen.dart
-
 import 'package:flutter/material.dart';
-import '../models/workout_data.dart';
-import '../services/firestore_service.dart';
-import 'package:provider/provider.dart';
+import 'package:myapp/models/workout_data.dart';
+import 'package:myapp/providers/onboarding_provider.dart';
 import 'package:myapp/services/auth_service.dart';
+import 'package:myapp/services/firestore_service.dart';
+import 'package:provider/provider.dart';
 
 class EditWorkoutDayScreen extends StatefulWidget {
-  final String programId;
-  final int dayIndex;
+  // IT NOW ACCEPTS THE FULL PROGRAM OBJECT
+  final WorkoutProgram program;
 
   const EditWorkoutDayScreen({
     super.key,
-    required this.programId,
-    required this.dayIndex,
+    required this.program,
   });
 
   @override
@@ -21,121 +19,74 @@ class EditWorkoutDayScreen extends StatefulWidget {
 }
 
 class _EditWorkoutDayScreenState extends State<EditWorkoutDayScreen> {
-  final FirestoreService _firestoreService = FirestoreService();
-  bool _isLoading = true;
-
-  List<Exercise> _exercisesForDay = [];
-  String _dayName = '';
-
-  final TextEditingController _exerciseNameController = TextEditingController();
-  final TextEditingController _setsRepsController = TextEditingController();
+  late WorkoutProgram _program;
+  bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    // We must use a post-frame callback to safely access the context/provider
-    // from within initState.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadWorkoutProgram();
-    });
+    // Initialize the state with the program passed from the previous screen
+    _program = widget.program;
   }
 
-  @override
-  void dispose() {
-    _exerciseNameController.dispose();
-    _setsRepsController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _loadWorkoutProgram() async {
-    // 1. Get the real user ID from AuthService.
+  // NEW: This method handles the FINAL save to Firestore.
+  Future<void> _confirmAndSaveChanges() async {
     final userId = context.read<AuthService>().currentUser?.uid;
     if (userId == null) {
-      if (mounted) setState(() => _isLoading = false);
-      return;
-    }
-
-    // 2. Fetch using the REAL userId.
-    final program =
-        await _firestoreService.getWorkoutProgramById(userId, widget.programId);
-
-    if (mounted && program != null) {
-      final workoutDay = program.days[widget.dayIndex];
-      setState(() {
-        _dayName = workoutDay.dayName;
-        _exercisesForDay = List<Exercise>.from(workoutDay.exercises);
-        _isLoading = false;
-      });
-    } else if (mounted) {
-      setState(() => _isLoading = false);
-    }
-  }
-
-  // The corrected _saveChanges method
-  Future<void> _saveChanges() async {
-    // 1. Get the real user ID from AuthService via Provider.
-    final userId = context.read<AuthService>().currentUser?.uid;
-
-    // 2. Add a guard clause in case the user is not logged in.
-    if (userId == null) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Error: Could not save changes. User not found.')),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Error: Could not save. User not found.')),
+      );
       return;
     }
 
     setState(() => _isLoading = true);
+    final firestoreService = FirestoreService();
 
-    // 3. Call the firestoreService with the REAL userId.
-    await _firestoreService.updateWorkoutDay(
-        userId, widget.programId, widget.dayIndex, _exercisesForDay);
-
-    if (mounted) {
-      setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Changes saved successfully!')),
-      );
-    }
-  }
-
-  void _onReorder(int oldIndex, int newIndex) {
-    setState(() {
-      if (newIndex > oldIndex) newIndex -= 1;
-      final Exercise item = _exercisesForDay.removeAt(oldIndex);
-      _exercisesForDay.insert(newIndex, item);
-    });
-  }
-
-  void _onDelete(int index) {
-    setState(() {
-      _exercisesForDay.removeAt(index);
-    });
-  }
-
-  void _onAddExercise() {
-    final newExerciseName = _exerciseNameController.text.trim();
-    final newSetsReps = _setsRepsController.text.trim();
-    if (newExerciseName.isNotEmpty) {
-      setState(() {
-        _exercisesForDay.add(
-          Exercise(
-            name: newExerciseName,
-            programTarget: newSetsReps,
-            status: 'Incomplete',
-            sets: [],
-          ),
+    try {
+      // If the program doesn't have an ID, it's new. Create it.
+      if (_program.id.isEmpty) {
+        final newProgramId = await firestoreService.createNewWorkoutProgram(
+          userId,
+          _program.name,
+          _program.days.map((d) => d.dayName).toList(),
         );
-      });
-      Navigator.of(context).pop();
-      _exerciseNameController.clear();
-      _setsRepsController.clear();
+        // We get the new ID back and update our local object.
+        _program.id = newProgramId;
+        // Now we update it with any exercises that were added.
+        await firestoreService.updateWorkoutProgram(userId, _program);
+
+        // Update the active program in the onboarding provider
+        // ignore: use_build_context_synchronously
+        Provider.of<OnboardingProvider>(context, listen: false)
+            .updateActiveProgramId(newProgramId);
+      } else {
+        // If it already has an ID, just update it.
+        await firestoreService.updateWorkoutProgram(userId, _program);
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Program Saved Successfully!')),
+        );
+        Navigator.of(context).pop(); // Go back after saving
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error saving program: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
-  void _showAddExerciseDialog() {
+  void _onAddExercise(WorkoutDay day) {
+    final exerciseNameController = TextEditingController();
+    final setsRepsController = TextEditingController();
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -144,14 +95,13 @@ class _EditWorkoutDayScreenState extends State<EditWorkoutDayScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
-              controller: _exerciseNameController,
+              controller: exerciseNameController,
               decoration: const InputDecoration(labelText: 'Exercise Name'),
               autofocus: true,
             ),
             TextField(
-              controller: _setsRepsController,
-              decoration: const InputDecoration(
-                  labelText: 'Sets/Reps Target (e.g., 3x 8-10 reps)'),
+              controller: setsRepsController,
+              decoration: const InputDecoration(labelText: 'Sets/Reps Target (e.g., 3x 8-10)'),
             ),
           ],
         ),
@@ -161,52 +111,147 @@ class _EditWorkoutDayScreenState extends State<EditWorkoutDayScreen> {
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: _onAddExercise,
+            onPressed: () {
+              final newExerciseName = exerciseNameController.text.trim();
+              if (newExerciseName.isNotEmpty) {
+                setState(() {
+                  day.exercises.add(
+                    Exercise(
+                      name: newExerciseName,
+                      programTarget: setsRepsController.text.trim(),
+                      status: 'Incomplete',
+                      sets: [],
+                    ),
+                  );
+                });
+              }
+              Navigator.of(context).pop();
+            },
             child: const Text('Add'),
           ),
         ],
       ),
     );
   }
+  
+  // NEW: Method to handle renaming a day.
+  void _onRenameDay(WorkoutDay day) {
+    final nameController = TextEditingController(text: day.dayName);
+    showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+              title: const Text('Rename Day'),
+              content: TextField(
+                controller: nameController,
+                autofocus: true,
+                decoration: const InputDecoration(labelText: 'Day Name (e.g., "Chest Day")'),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    final newName = nameController.text.trim();
+                    if (newName.isNotEmpty) {
+                      setState(() {
+                        day.dayName = newName;
+                      });
+                    }
+                    Navigator.of(context).pop();
+                  },
+                  child: const Text('Rename'),
+                ),
+              ],
+            ));
+  }
+
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        // 3. Update the title to be dynamic.
-        title: Text('Edit: $_dayName'),
+        title: Text('Edit: ${_program.name}'),
         actions: [
           IconButton(
             icon: const Icon(Icons.save),
-            onPressed: _isLoading ? null : _saveChanges,
-            tooltip: 'Save Changes',
+            // The button now confirms and saves the program.
+            onPressed: _isLoading ? null : _confirmAndSaveChanges,
+            tooltip: 'Confirm and Save Program',
           )
         ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : ReorderableListView.builder(
+          : ListView.builder(
               padding: const EdgeInsets.all(8.0),
-              itemCount: _exercisesForDay.length,
+              itemCount: _program.days.length,
               itemBuilder: (context, index) {
-                final exercise = _exercisesForDay[index];
-                return Card(
-                  key: ValueKey(exercise.name),
-                  child: ListTile(
-                    title: Text(exercise.name),
-                    subtitle: Text('Target: ${exercise.programTarget}'),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.delete, color: Colors.redAccent),
-                      onPressed: () => _onDelete(index),
-                    ),
-                  ),
+                final day = _program.days[index];
+                return _WorkoutDayCard(
+                  day: day,
+                  onAddExercise: () => _onAddExercise(day),
+                  onRename: () => _onRenameDay(day),
+                  onExerciseDeleted: (exerciseIndex) {
+                    setState(() {
+                      day.exercises.removeAt(exerciseIndex);
+                    });
+                  },
                 );
               },
-              onReorder: _onReorder,
             ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showAddExerciseDialog,
-        child: const Icon(Icons.add),
+    );
+  }
+}
+
+class _WorkoutDayCard extends StatelessWidget {
+  final WorkoutDay day;
+  final VoidCallback onAddExercise;
+  final VoidCallback onRename;
+  final ValueChanged<int> onExerciseDeleted;
+
+  const _WorkoutDayCard({
+    required this.day,
+    required this.onAddExercise,
+    required this.onRename,
+    required this.onExerciseDeleted,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 8.0),
+      child: ExpansionTile(
+        title: Text(day.dayName, style: const TextStyle(fontWeight: FontWeight.bold)),
+        trailing: IconButton( // NEW: Rename button for each day
+          icon: const Icon(Icons.drive_file_rename_outline, size: 20),
+          onPressed: onRename,
+          tooltip: 'Rename Day',
+        ),
+        initiallyExpanded: true,
+        children: [
+          for (int i = 0; i < day.exercises.length; i++)
+            ListTile(
+              title: Text(day.exercises[i].name),
+              subtitle: Text('Target: ${day.exercises[i].programTarget}'),
+              trailing: IconButton(
+                icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                onPressed: () => onExerciseDeleted(i),
+              ),
+            ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child: TextButton.icon(
+              onPressed: onAddExercise,
+              icon: const Icon(Icons.add),
+              label: const Text('Add Exercise'),
+              style: TextButton.styleFrom(
+                minimumSize: const Size.fromHeight(40),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

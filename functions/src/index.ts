@@ -19,6 +19,7 @@ if (!projectId) {
 const vertexAI = new VertexAI({project: projectId, location: "us-central1"});
 
 const generativeModel = vertexAI.getGenerativeModel({
+  // FIX: Using the user-requested gemini-2.5-flash model.
   model: "gemini-2.5-flash",
   safetySettings: [
     {
@@ -36,6 +37,16 @@ const generativeModel = vertexAI.getGenerativeModel({
 interface WorkoutDay {
   dayName: string;
   exercises: { name: string; sets: number; reps: number }[];
+}
+
+interface SetData {
+  weight: number;
+  reps: number;
+}
+
+interface ExerciseData {
+  name: string;
+  sets: SetData[];
 }
 
 // == FUNCTIONS ==
@@ -109,37 +120,45 @@ export const suggestNutritionGoals = functions.https.onCall(
       throw new functions.https.HttpsError(
         "unauthenticated", "You must be logged in.");
     }
-
     const {
-      primaryGoal, biologicalSex, weightKg, heightCm, activityLevel,
+      primaryGoal, biologicalSex, weight, height, activityLevel,
+      prefersLowCarb, weeklyWeightLossGoal, exerciseDaysPerWeek,
     } = request.data;
     if (
-      !primaryGoal || !biologicalSex || !weightKg || !heightCm || !activityLevel
+      !primaryGoal || !biologicalSex || !weight || !height || !activityLevel
     ) {
       throw new functions.https.HttpsError(
         "invalid-argument", "Missing required profile data.");
     }
-
+    const weightKg = weight.unit === "lbs" ?
+      weight.value * 0.453592 : weight.value;
+    const heightCm = height.unit === "cm" ?
+      height.value : height.value;
     const prompt = `
-      You are an expert nutritionist. Calculate daily nutrition goals
-      (calories, protein, carbs, fat) based on user data.
-      IMPORTANT: Respond with ONLY a valid JSON object.
-      User Data:
-      - Goal: ${primaryGoal}, Sex: ${biologicalSex}, Weight: ${weightKg} kg,
-      - Height: ${heightCm} cm, Activity: ${activityLevel}
+      You are an expert nutritionist. Your task is to calculate a highly
+      personalized daily nutrition plan based on detailed user data.
+      **USER DATA:**
+      - Primary Goal: ${primaryGoal}
+      - Biological Sex: ${biologicalSex}
+      - Weight: ${weightKg.toFixed(2)} kg, Height: ${heightCm.toFixed(2)} cm
+      - Daily Activity Level (Non-Exercise): "${activityLevel}"
+      - Planned Exercise Days Per Week: ${exerciseDaysPerWeek}
+      - Dietary Preference: ${prefersLowCarb ? "Prefers Low-Carb" : "Standard"}
+      - Weekly Weight Loss Goal: ${weeklyWeightLossGoal} lbs (if applicable)
+      **IMPORTANT:** Respond with ONLY a valid JSON object.
+      {
+        "targetCalories": number, "targetProtein": number,
+        "targetCarbs": number, "targetFat": number
+      }
     `;
-
     try {
       const result = await generativeModel.generateContent(prompt);
       let jsonString = result.response.candidates?.[0]
         ?.content?.parts?.[0]?.text ?? "{}";
-
       if (jsonString.startsWith("```json")) {
         jsonString = jsonString.substring(7, jsonString.length - 3);
       }
-
-      const goals = JSON.parse(jsonString);
-      return goals;
+      return JSON.parse(jsonString);
     } catch (error) {
       console.error("Error in suggestNutritionGoals:", error);
       throw new functions.https.HttpsError(
@@ -148,7 +167,6 @@ export const suggestNutritionGoals = functions.https.onCall(
   },
 );
 
-// FIX: Restored the missing generateMealInsight function
 export const generateMealInsight = functions.https.onCall(
   async (request) => {
     if (!request.auth) {
@@ -160,26 +178,17 @@ export const generateMealInsight = functions.https.onCall(
       throw new functions.https.HttpsError(
         "invalid-argument", "Missing required profile goal or meal data.");
     }
-
     const prompt = `
-        You are a positive and encouraging fitness coach.
-        A user is logging a meal. Their primary goal is "${primaryGoal}".
-        The meal they just ate has the following macros:
-        - Calories: ${meal.calories}
-        - Protein: ${meal.protein}g
-        - Carbs: ${meal.carbs}g
-        - Fat: ${meal.fat}g
-
-        Your task is to write a single, short, encouraging sentence
-        (under 20 words) that positively frames how this meal
-        impacts the user's primary goal.
+        You are a positive fitness coach. A user's goal is "${primaryGoal}".
+        Their meal: Calories: ${meal.calories}, Protein: ${meal.protein}g,
+        Carbs: ${meal.carbs}g, Fat: ${meal.fat}g.
+        Write a single, encouraging sentence (under 20 words)
+        positively framing how this meal impacts their goal.
       `;
-
     try {
       const result = await generativeModel.generateContent(prompt);
       const insightText = result.response.candidates?.[0]
         ?.content?.parts?.[0]?.text ?? "";
-
       return {insightText: insightText.trim()};
     } catch (error) {
       console.error("Error calling AI model for meal insight:", error);
@@ -210,8 +219,7 @@ export const aiAssistant = functions.https.onCall(
           parameters: {
             type: "OBJECT",
             properties: {
-              name: {type: "STRING"},
-              days: {type: "NUMBER"},
+              name: {type: "STRING"}, days: {type: "NUMBER"},
             },
             required: ["name", "days"],
           } as FunctionDeclarationSchema,
@@ -270,31 +278,21 @@ export const processWorkoutUserInput = functions.https.onCall(
         "invalid-argument", "Missing required workout data.");
     }
 
-    const workoutJson = JSON.stringify(currentWorkout);
-    const historyJson = JSON.stringify(chatHistory);
-
     const prompt = `
-      You are an expert fitness coach and a precise data entry assistant.
-      Your task is to analyze a user's text command and update their
-      current workout session data accordingly.
-
-      RULES:
-      - Infer the exercise based on the user's command and chat history.
-      - If a correction is provided, modify the LAST logged set.
-      - You MUST return a single, valid JSON object.
-      - If the command is conversational, set "updated_workout_json" to null.
-      - If the user is 'done' with an exercise, update its 'status' field
-        in the JSON to 'complete'.
-
+      You are a fitness coach and data entry assistant. Analyze the user's
+      command and update their workout JSON.
+      RULES: Infer exercise from context. Modify the LAST set for
+      corrections. Return ONLY a valid JSON object. If conversational,
+      set "updated_workout_json" to null. If user is 'done', set
+      exercise 'status' to 'complete'.
       INPUT:
-      - current_workout_json: ${workoutJson}
+      - current_workout_json: ${JSON.stringify(currentWorkout)}
       - user_input: "${userInput}"
-      - chat_history: ${historyJson}
-
+      - chat_history: ${JSON.stringify(chatHistory)}
       OUTPUT FORMAT:
       {
-        "updated_workout_json": The complete, modified workout JSON object,
-        "response_message": "A short, encouraging confirmation message."
+        "updated_workout_json": The modified workout JSON or null,
+        "response_message": "A short confirmation message."
       }
     `;
 
@@ -302,7 +300,6 @@ export const processWorkoutUserInput = functions.https.onCall(
       const result = await generativeModel.generateContent(prompt);
       const responseText = result.response.candidates?.[0]
         ?.content?.parts?.[0]?.text?.trim() ?? "{}";
-
       const startIndex = responseText.indexOf("{");
       const endIndex = responseText.lastIndexOf("}");
       if (startIndex === -1 || endIndex === -1) {
@@ -330,8 +327,8 @@ export const getMealFromText = functions.https.onCall(async (request) => {
   }
 
   const prompt = `
-      You are an expert nutrition parser. Analyze the user's text and
-      extract detailed meal information. Return a single, valid JSON object.
+      You are a nutrition parser. Analyze the text and extract meal info
+      into a single, valid JSON object.
       JSON STRUCTURE:
       {
         "mealName": "...", "totalProtein": 0.0, "totalCarbs": 0.0,
@@ -358,17 +355,6 @@ export const getMealFromText = functions.https.onCall(async (request) => {
   }
 });
 
-// Define interfaces for our data to avoid using 'any'
-interface SetData {
-  weight: number;
-  reps: number;
-}
-
-interface ExerciseData {
-  name: string;
-  sets: SetData[];
-}
-
 export const getWorkoutInsights = functions.https.onCall(async (request) => {
   if (!request.auth) {
     throw new functions.https.HttpsError(
@@ -388,8 +374,6 @@ export const getWorkoutInsights = functions.https.onCall(async (request) => {
         `${s.weight}${unitSuffix} x ${s.reps}reps`).join(", ")}`)
     .join("\n");
 
-  // FIX: Broke the long line into multiple lines for readability
-  // and to satisfy the linter.
   const entries = Object.entries(lastSessionData) as
     [string, ExerciseData | null][];
   const previousSummary = entries.map(([key, value]) => {
@@ -399,20 +383,16 @@ export const getWorkoutInsights = functions.https.onCall(async (request) => {
   }).join("\n");
 
   const prompt = `
-      You are an expert fitness coach. The user's preferred unit is
-      ${unitSuffix}. Analyze their workout and provide a concise summary.
+      You are a fitness coach. The user's unit is ${unitSuffix}. Analyze
+      their workout and provide a concise summary.
       STRUCTURE:
       Overall Session Insights: [Your summary]
       ---
-      Performance Notes: [Bulleted list of observations]
+      Performance Notes: [Bulleted list]
       ---
-      Recommendations for Next Time: [Bulleted list of tips]
-
-      CURRENT WORKOUT:
-      ${currentSummary}
-
-      PREVIOUS WORKOUT:
-      ${previousSummary}
+      Recommendations for Next Time: [Bulleted list]
+      CURRENT WORKOUT: ${currentSummary}
+      PREVIOUS WORKOUT: ${previousSummary}
     `;
 
   try {
@@ -427,3 +407,56 @@ export const getWorkoutInsights = functions.https.onCall(async (request) => {
       "internal", "Failed to generate workout insights.");
   }
 });
+
+// THIS IS THE NEW FUNCTION THAT WAS MISSING
+export const generateAiWorkoutProgram = functions.https.onCall(
+  async (request) => {
+    if (!request.auth) {
+      throw new functions.https.HttpsError(
+        "unauthenticated", "You must be logged in.");
+    }
+    const {prompt, equipmentInfo} = request.data;
+    if (!prompt || !equipmentInfo) {
+      throw new functions.https.HttpsError(
+        "invalid-argument", "A prompt and equipment info are required.");
+    }
+
+    const finalPrompt = `
+      You are an expert fitness coach creating a personalized workout program.
+      **USER'S REQUEST:** "${prompt}"
+      **EQUIPMENT AVAILABILITY:** "${equipmentInfo}"
+      **TASK:**
+      1. Analyze the user's request for days, split, and goals.
+      2. Create a complete workout program based on the request and equipment.
+      3. For each day, provide a name (e.g., "Chest & Triceps Push Day").
+      4. For each exercise, provide a target (e.g., "3x 8-12 reps").
+      **IMPORTANT:** Respond with ONLY a valid JSON object.
+      The JSON structure must be:
+      {
+        "id": "", "name": "AI Generated Program Name", "days": [
+          {"dayName": "Day 1: Chest & Triceps", "exercises": [
+              {"name": "Bench Press", "programTarget": "4x 8-10 reps",
+               "status": "Incomplete", "sets": []}
+          ]}
+        ]
+      }
+    `;
+
+    try {
+      const result = await generativeModel.generateContent(finalPrompt);
+      const jsonString = result.response.candidates?.[0]
+        ?.content?.parts?.[0]?.text ?? "{}";
+
+      const programData = JSON.parse(jsonString);
+      if (!programData.name || !programData.days) {
+        throw new Error("AI response was not a valid program structure.");
+      }
+
+      return programData;
+    } catch (error) {
+      console.error("Error in generateAiWorkoutProgram:", error);
+      throw new functions.https.HttpsError(
+        "internal", "Failed to generate AI workout program.");
+    }
+  },
+);

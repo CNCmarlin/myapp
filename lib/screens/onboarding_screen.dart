@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-//import 'package:myapp/models/user_profile.dart';
+import 'package:myapp/models/workout_data.dart';
 import 'package:myapp/providers/onboarding_provider.dart';
 import 'package:myapp/providers/user_profile_provider.dart';
+import 'package:myapp/services/assistant_service.dart';
 import 'package:myapp/services/auth_service.dart';
-import 'package:myapp/services/firestore_service.dart';
 import 'package:myapp/services/nutrition_goal_service.dart';
 import 'package:provider/provider.dart';
+import 'package:myapp/screens/edit_workout_day_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -18,15 +19,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
 
-  // FIX: Reordered the pages for a more logical flow and added the new page.
+  // FIX: Reordered the pages for a logical data collection flow.
   final List<Widget> _pages = [
     const _WelcomePage(),
     const _GoalPage(),
     const _UnitSystemPage(),
     const _BiometricsPage(),
-    const _DietAndActivityPage(), // NEW PAGE ADDED HERE
-    const _NutritionGoalsPage(),
-    const _CreateProgramPage(),
+    const _DietAndActivityPage(), // This now comes BEFORE nutrition goals
+    const _CreateProgramPage(),   // This also comes BEFORE nutrition goals
+    const _NutritionGoalsPage(),  // Now the AI has all the data it needs
     const _SummaryPage(),
   ];
 
@@ -130,7 +131,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 }
 
 // --- Page Widgets ---
-
+// (The individual page widgets remain unchanged from your provided code)
 class _WelcomePage extends StatelessWidget {
   const _WelcomePage();
   @override
@@ -247,8 +248,8 @@ class _BiometricsPage extends StatefulWidget {
 
 class _BiometricsPageState extends State<_BiometricsPage> {
   final TextEditingController _weightController = TextEditingController();
-  final TextEditingController _heightPrimaryController = TextEditingController(); // For cm or ft
-  final TextEditingController _heightSecondaryController = TextEditingController(); // For in
+  final TextEditingController _heightPrimaryController = TextEditingController();
+  final TextEditingController _heightSecondaryController = TextEditingController();
 
   @override
   void dispose() {
@@ -336,7 +337,6 @@ class _BiometricsPageState extends State<_BiometricsPage> {
   }
 }
 
-// NEW: This is the entirely new page widget for diet and activity.
 class _DietAndActivityPage extends StatelessWidget {
   const _DietAndActivityPage();
 
@@ -392,7 +392,6 @@ class _DietAndActivityPage extends StatelessWidget {
               ),
             ],
             const SizedBox(height: 24),
-            // We can re-use the activity level selection here.
             const Text('Outside of exercise, how active is your daily life?'),
             ...['Sedentary', 'Lightly Active', 'Moderately Active', 'Very Active'].map((level) => ListTile(
               title: Text(level),
@@ -530,13 +529,15 @@ enum CreationMode { manual, ai }
 
 class _CreateProgramPageState extends State<_CreateProgramPage> {
   final _textController = TextEditingController();
-  final _firestoreService = FirestoreService();
+  final _assistantService = AssistantService();
 
   CreationMode _mode = CreationMode.manual;
   final List<String> _allDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   final Set<String> _selectedDays = {'Mon', 'Wed', 'Fri'};
   bool _isLoading = false;
-  bool _isCreated = false;
+
+  String? _aiQuestion;
+  String? _selectedEquipment;
 
   @override
   void dispose() {
@@ -544,11 +545,42 @@ class _CreateProgramPageState extends State<_CreateProgramPage> {
     super.dispose();
   }
 
-  Future<void> _createProgram() async {
-    final programNameOrPrompt = _textController.text.trim();
-    if (programNameOrPrompt.isEmpty || _selectedDays.isEmpty) {
+  Future<void> _createManualProgram() async {
+    final programName = _textController.text.trim();
+    if (programName.isEmpty || _selectedDays.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a name/prompt and select at least one day.')),
+        const SnackBar(content: Text('Please enter a name and select at least one day.')),
+      );
+      return;
+    }
+
+    final workoutDays = _selectedDays.map((dayName) {
+      return WorkoutDay(dayName: dayName, exercises: []);
+    }).toList();
+
+    final newProgram = WorkoutProgram(
+      id: '',
+      name: programName,
+      days: workoutDays,
+    );
+    
+    if (mounted) {
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => EditWorkoutDayScreen(
+            program: newProgram,
+          ),
+        ),
+      );
+    }
+  }
+  
+  Future<void> _submitAIPrompt() async {
+    final prompt = _textController.text.trim();
+    if (prompt.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please describe the program you want.')),
       );
       return;
     }
@@ -556,24 +588,42 @@ class _CreateProgramPageState extends State<_CreateProgramPage> {
     setState(() => _isLoading = true);
 
     try {
-      final authService = context.read<AuthService>();
-      final onboardingProvider = context.read<OnboardingProvider>();
-      final userId = authService.currentUser?.uid;
+      if (_selectedEquipment == null) {
+        setState(() {
+          _aiQuestion = "What kind of equipment do you have access to?";
+          _isLoading = false;
+        });
+        return;
+      }
+      
+      final program = await _assistantService.generateProgram(
+        prompt: prompt,
+        equipmentInfo: _selectedEquipment!,
+      );
 
-      if (userId != null) {
-        // TODO: Handle AI creation mode
-        final newProgramId = await _firestoreService.createNewWorkoutProgram(
-          userId,
-          programNameOrPrompt,
-          _selectedDays.toList(),
+      if (mounted && program != null) {
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => EditWorkoutDayScreen(
+              program: program,
+            ),
+          ),
         );
-        onboardingProvider.updateActiveProgramId(newProgramId);
-        setState(() => _isCreated = true);
+        setState(() {
+          _textController.clear();
+          _aiQuestion = null;
+          _selectedEquipment = null;
+        });
+      } else if (mounted) {
+         ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('The AI failed to generate a program. Please try again.')),
+        );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Failed to create program: $e")),
+          SnackBar(content: Text("An error occurred: $e")),
         );
       }
     } finally {
@@ -616,34 +666,55 @@ class _CreateProgramPageState extends State<_CreateProgramPage> {
                 ? 'Program Name (e.g., "My Lifting Plan")'
                 : 'Describe the program you want...',
             hintText: _mode == CreationMode.ai
-                ? 'e.g., "A 3-day upper/lower split for beginners"'
+                ? 'e.g., "A 4 day push pull full body strength program"'
                 : null,
             border: const OutlineInputBorder(),
           ),
-          enabled: !_isCreated,
         ),
         const SizedBox(height: 24),
 
-        Text('Select Workout Days', style: textTheme.titleMedium),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8.0,
-          children: _allDays.map((day) {
-            return FilterChip(
-              label: Text(day),
-              selected: _selectedDays.contains(day),
-              onSelected: _isCreated ? null : (bool selected) {
-                setState(() {
-                  if (selected) {
-                    _selectedDays.add(day);
-                  } else {
-                    _selectedDays.remove(day);
-                  }
-                });
-              },
-            );
-          }).toList(),
-        ),
+        if (_mode == CreationMode.manual) ...[
+          Text('Select Workout Days', style: textTheme.titleMedium),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8.0,
+            children: _allDays.map((day) {
+              return FilterChip(
+                label: Text(day),
+                selected: _selectedDays.contains(day),
+                onSelected: (bool selected) {
+                  setState(() {
+                    if (selected) {
+                      _selectedDays.add(day);
+                    } else {
+                      _selectedDays.remove(day);
+                    }
+                  });
+                },
+              );
+            }).toList(),
+          ),
+        ],
+
+        if (_mode == CreationMode.ai && _aiQuestion != null) ...[
+            Text(_aiQuestion!, style: textTheme.titleMedium),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8.0,
+              children: ['Public Gym', 'Home Gym', 'Bodyweight Only'].map((equipment) {
+                return ChoiceChip(
+                  label: Text(equipment),
+                  selected: _selectedEquipment == equipment,
+                  onSelected: (bool selected) {
+                    setState(() {
+                      _selectedEquipment = selected ? equipment : null;
+                    });
+                  },
+                );
+              }).toList(),
+            ),
+        ],
+
         const SizedBox(height: 32),
         
         if (_isLoading)
@@ -652,12 +723,10 @@ class _CreateProgramPageState extends State<_CreateProgramPage> {
           ElevatedButton.icon(
             style: ElevatedButton.styleFrom(
               minimumSize: const Size.fromHeight(50),
-              backgroundColor: _isCreated ? Colors.green : Theme.of(context).primaryColor,
-              foregroundColor: Theme.of(context).colorScheme.onPrimary,
             ),
-            onPressed: _isCreated ? null : _createProgram,
-            icon: Icon(_isCreated ? Icons.check : Icons.add),
-            label: Text(_isCreated ? 'Program Created!' : 'Create Program'),
+            onPressed: _mode == CreationMode.manual ? _createManualProgram : _submitAIPrompt,
+            icon: Icon(_mode == CreationMode.manual ? Icons.add : Icons.auto_awesome),
+            label: Text(_mode == CreationMode.ai && _aiQuestion != null ? 'Generate Program' : 'Design Program'),
           ),
       ],
     );
@@ -671,8 +740,6 @@ class _SummaryPage extends StatelessWidget {
     final profile = context.watch<OnboardingProvider>().finalProfile;
     final bool isImperial = profile.unitSystem == 'imperial';
     final goal = profile.primaryGoal ?? 'Not Set';
-    // REMOVED: activityLevel is now part of the new Diet/Activity page
-    // final activity = profile.activityLevel ?? 'Not Set';
     final sex = profile.biologicalSex ?? 'Not Set';
     final weightValue = profile.weight?['value'] as double?;
     final weightDisplay = weightValue != null ? '${weightValue.toStringAsFixed(1)} ${profile.weight?['unit']}' : 'Not Set';
@@ -702,9 +769,6 @@ class _SummaryPage extends StatelessWidget {
             const SizedBox(height: 8),
             Text('Sex: $sex', style: const TextStyle(fontSize: 18)),
             const SizedBox(height: 8),
-            // REMOVED: Redundant activity level display
-            // Text('Activity: $activity', style: const TextStyle(fontSize: 18)),
-            // const SizedBox(height: 8),
             Text('Weight: $weightDisplay', style: const TextStyle(fontSize: 18)),
             const SizedBox(height: 8),
             Text('Height: $heightDisplay', style: const TextStyle(fontSize: 18)),

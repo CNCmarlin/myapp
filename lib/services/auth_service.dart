@@ -16,46 +16,59 @@ class AuthService {
   // Get current user
   User? get currentUser => _firebaseAuth.currentUser;
 
-  // Sign in with Google (Updated for v7+)
-  Future<UserCredential?> signInWithGoogle() async {
-    try {
-      // 1. Trigger the Google Sign-In flow
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      if (googleUser == null) {
-        // The user canceled the sign-in
-        return null;
-      }
+  // In lib/services/auth_service.dart, inside the AuthService class
 
-      // 2. Obtain the auth details from the request
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-
-      // 3. Create a new credential for Firebase
-      final AuthCredential credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      );
-
-      // 4. Sign in to Firebase with the credential
-      final UserCredential userCredential = await _firebaseAuth.signInWithCredential(credential);
-
-      // 5. CRITICAL: Check if the user is new. If so, create their profile document.
-      if (userCredential.additionalUserInfo?.isNewUser ?? false) {
-        // We now use the UserProfile model for consistency
-        final newUserProfile = UserProfile(
-          activityLevel: 'Sedentary',
-          primaryGoal: 'Maintain Weight',
-          biologicalSex: 'Male',
-          // Add any other default fields your UserProfile requires
-        );
-        await _firestoreService.createNewUserProfile(userCredential.user!, newUserProfile);
-      }
-
-      return userCredential;
-    } catch (e) {
-      print('Error during Google Sign-In: $e');
+Future<UserCredential?> signInWithGoogle() async {
+  try {
+    // 1. Trigger the Google Sign-In flow
+    final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+    if (googleUser == null) {
+      // The user canceled the sign-in
       return null;
     }
+
+    // 2. Obtain the auth details from the request
+    final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+
+    // 3. Create a new credential for Firebase
+    final AuthCredential credential = GoogleAuthProvider.credential(
+      accessToken: googleAuth.accessToken,
+      idToken: googleAuth.idToken,
+    );
+
+    // 4. Sign in to Firebase with the credential
+    final UserCredential userCredential =
+        await _firebaseAuth.signInWithCredential(credential);
+        print('user credentials signed in successfully');
+
+    // 5. CRITICAL: Check if the user is new. If so, create their profile document.
+    if (userCredential.additionalUserInfo?.isNewUser ?? false) {
+      print('creating required user objects');
+      // FIX: This UserProfile object now EXACTLY matches the requirements
+      // of our 'isValidNewUserProfile' security rule.
+      final newUserProfile = UserProfile(
+        onboardingCompleted: false,
+        unitSystem: 'imperial',
+        targetCalories: 0.0,
+        targetProtein: 0.0,
+        targetCarbs: 0.0,
+        targetFat: 0.0,
+        // All other fields will be null or use their defaults from the model
+      );
+      print('created user profile required objects');
+      await _firestoreService.createNewUserProfile(
+          userCredential.user!, newUserProfile);
+    }
+    print('user profile created successfully');
+
+    return userCredential;
+  } catch (e) {
+    print('Error during Google Sign-In: $e');
+    // It's often helpful to rethrow the exception to see it higher up
+    // in the call stack if needed for debugging.
+    throw Exception('Error during Google Sign-In: $e');
   }
+}
 
   // Sign out
   Future<void> signOut() async {

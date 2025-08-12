@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-//import 'package:myapp/models/user_profile.dart';
 import 'package:myapp/models/workout_data.dart';
 import 'package:myapp/providers/user_profile_provider.dart';
 import 'package:myapp/services/auth_service.dart';
@@ -23,20 +22,27 @@ class ProfileProvider with ChangeNotifier {
   })  : _authService = authService,
         _firestoreService = firestoreService,
         _userProfileProvider = userProfileProvider {
-    loadAvailablePrograms();
+    // The automatic call to loadAvailablePrograms() has been removed.
+    // The provider is now "lazy".
   }
 
   Future<void> loadAvailablePrograms() async {
+    // Prevent re-fetching if we are already loading or already have the data.
+    if (_isLoadingPrograms || _availablePrograms.isNotEmpty) return;
+
     final userId = _authService.currentUser?.uid;
     if (userId == null) return;
+
     _isLoadingPrograms = true;
     notifyListeners();
+
     _availablePrograms = await _firestoreService.getAllWorkoutPrograms(userId);
+    
     _isLoadingPrograms = false;
     notifyListeners();
   }
 
-  // NEW: A dedicated method for saving goals and settings
+  // A dedicated method for saving goals and settings
   Future<void> saveGoals({
     required String activityLevel,
     required String primaryGoal,
@@ -62,7 +68,7 @@ class ProfileProvider with ChangeNotifier {
     await _userProfileProvider.updateUserProfile(userId, profileToSave);
   }
 
-  // NEW: A dedicated method for saving body stats
+  // A dedicated method for saving body stats
   Future<void> saveStats({
     required bool isMetric,
     required String biologicalSex,

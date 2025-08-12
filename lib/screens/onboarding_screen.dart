@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:myapp/models/user_profile.dart';
+//import 'package:myapp/models/user_profile.dart';
 import 'package:myapp/providers/onboarding_provider.dart';
 import 'package:myapp/providers/user_profile_provider.dart';
 import 'package:myapp/services/auth_service.dart';
@@ -18,13 +18,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
 
-  // This is the complete list of pages for our onboarding flow.
+  // FIX: Reordered the pages for a more logical flow and added the new page.
   final List<Widget> _pages = [
     const _WelcomePage(),
     const _GoalPage(),
     const _UnitSystemPage(),
     const _BiometricsPage(),
-    const _ActivityLevelPage(),
+    const _DietAndActivityPage(), // NEW PAGE ADDED HERE
     const _NutritionGoalsPage(),
     const _CreateProgramPage(),
     const _SummaryPage(),
@@ -61,21 +61,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     final authService = context.read<AuthService>();
     final String? userId = authService.currentUser?.uid;
 
-    // Get the temporary profile from the OnboardingProvider.
-    final onboardingProvider = context.read<OnboardingProvider>();
-    final UserProfile tempProfile = onboardingProvider.finalProfile;
     if (userId == null) {
       print("Error: No user is currently signed in. Cannot complete onboarding.");
       return;
     }
 
+    final onboardingProvider = context.read<OnboardingProvider>();
     final finalProfile = onboardingProvider.finalProfile.copyWith(onboardingCompleted: true);
     userProfileProvider.updateUserProfile(userId, finalProfile);
-
-    // DEBUG STEP 1: Confirm the data we are about to send.
-    print('[DEBUG 1] OnboardingScreen: Calling updateUserProfile. onboardingCompleted is: ${tempProfile.onboardingCompleted}');
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -342,171 +336,80 @@ class _BiometricsPageState extends State<_BiometricsPage> {
   }
 }
 
-class _ActivityLevelPage extends StatelessWidget {
-  const _ActivityLevelPage();
+// NEW: This is the entirely new page widget for diet and activity.
+class _DietAndActivityPage extends StatelessWidget {
+  const _DietAndActivityPage();
+
   @override
   Widget build(BuildContext context) {
-    final List<String> activityLevels = ['Sedentary', 'Lightly Active', 'Moderately Active', 'Very Active'];
     return Consumer<OnboardingProvider>(
       builder: (context, provider, child) {
-        return Padding(
+        final profile = provider.finalProfile;
+        final bool isLosingWeight = profile.primaryGoal == 'Lose Weight';
+
+        return ListView(
           padding: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Text('How active are you?', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+          children: [
+            const Text(
+              'Diet & Activity',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'How many days per week do you plan to exercise?',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            Slider(
+              value: profile.exerciseDaysPerWeek.toDouble(),
+              min: 0,
+              max: 7,
+              divisions: 7,
+              label: profile.exerciseDaysPerWeek.toString(),
+              onChanged: (value) {
+                provider.updateExerciseDaysPerWeek(value.toInt());
+              },
+            ),
+            const SizedBox(height: 24),
+            SwitchListTile(
+              title: const Text('Do you prefer a low-carb diet?'),
+              value: profile.prefersLowCarb,
+              onChanged: provider.updatePrefersLowCarb,
+            ),
+            if (isLosingWeight) ...[
               const SizedBox(height: 24),
-              ...activityLevels.map((level) => ListTile(
-                    title: Text(level),
-                    leading: Radio<String>(
-                      value: level,
-                      groupValue: provider.finalProfile.activityLevel,
-                      onChanged: (value) {
-                        if (value != null) provider.updateActivityLevel(value);
-                      },
-                    ),
-                  )),
+              Text(
+                'What is your weekly weight loss goal?',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              Slider(
+                value: profile.weeklyWeightLossGoal,
+                min: 0.5,
+                max: 2.0,
+                divisions: 3,
+                label: '${profile.weeklyWeightLossGoal.toStringAsFixed(1)} lbs',
+                onChanged: provider.updateWeeklyWeightLossGoal,
+              ),
             ],
-          ),
+            const SizedBox(height: 24),
+            // We can re-use the activity level selection here.
+            const Text('Outside of exercise, how active is your daily life?'),
+            ...['Sedentary', 'Lightly Active', 'Moderately Active', 'Very Active'].map((level) => ListTile(
+              title: Text(level),
+              leading: Radio<String>(
+                value: level,
+                groupValue: provider.finalProfile.activityLevel,
+                onChanged: (value) {
+                  if (value != null) provider.updateActivityLevel(value);
+                },
+              ),
+            )),
+          ],
         );
       },
     );
   }
 }
-
-class _SummaryPage extends StatelessWidget {
-  const _SummaryPage();
-  @override
-  Widget build(BuildContext context) {
-    final profile = context.watch<OnboardingProvider>().finalProfile;
-    final bool isImperial = profile.unitSystem == 'imperial';
-    final goal = profile.primaryGoal ?? 'Not Set';
-    final activity = profile.activityLevel ?? 'Not Set';
-    final sex = profile.biologicalSex ?? 'Not Set';
-    final weightValue = profile.weight?['value'] as double?;
-    final weightDisplay = weightValue != null ? '${weightValue.toStringAsFixed(1)} ${profile.weight?['unit']}' : 'Not Set';
-    final heightCm = profile.height?['value'] as double?;
-    String heightDisplay = 'Not Set';
-    if (heightCm != null && heightCm > 0) {
-      if (isImperial) {
-        final totalInches = heightCm * 0.393701;
-        final feet = totalInches ~/ 12;
-        final inches = (totalInches % 12).toStringAsFixed(1);
-        heightDisplay = '$feet ft $inches in';
-      } else {
-        heightDisplay = '${heightCm.toStringAsFixed(1)} cm';
-      }
-    }
-
-    return SingleChildScrollView(
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Ready to go?', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 24),
-            Text('Goal: $goal', style: const TextStyle(fontSize: 18)),
-            const SizedBox(height: 8),
-            Text('Sex: $sex', style: const TextStyle(fontSize: 18)),
-            const SizedBox(height: 8),
-            Text('Activity: $activity', style: const TextStyle(fontSize: 18)),
-            const SizedBox(height: 8),
-            Text('Weight: $weightDisplay', style: const TextStyle(fontSize: 18)),
-            const SizedBox(height: 8),
-            Text('Height: $heightDisplay', style: const TextStyle(fontSize: 18)),
-            const SizedBox(height: 32),
-            const Text(
-              'You can always change these details later in your profile.',
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-    );
-  } 
-}
-
-class _CreateProgramPage extends StatefulWidget {
-  const _CreateProgramPage();
-  @override
-  State<_CreateProgramPage> createState() => _CreateProgramPageState();
-}
-class _CreateProgramPageState extends State<_CreateProgramPage> {
-  final _programNameController = TextEditingController();
-  final _firestoreService = FirestoreService();
-  bool _isCreated = false;
-  bool _isLoading = false;
-  @override
-  void dispose() {
-    _programNameController.dispose();
-    super.dispose();
-  }
-  Future<void> _createProgram() async {
-    if (_programNameController.text.trim().isEmpty) return;
-    setState(() => _isLoading = true);
-    try {
-      final authService = context.read<AuthService>();
-      final onboardingProvider = context.read<OnboardingProvider>();
-      final userId = authService.currentUser?.uid;
-      if (userId != null) {
-        final newProgramId = await _firestoreService.createNewWorkoutProgram(userId, _programNameController.text.trim());
-        // This method needs to be added to OnboardingProvider
-        onboardingProvider.updateActiveProgramId(newProgramId);
-        setState(() => _isCreated = true);
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Failed to create program: $e")),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
-  }
-  @override
-  Widget build(BuildContext context) {
- return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
- const Text('Create Your First Program', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
- const SizedBox(height: 16),
- const Text('Give your new workout plan a name. You can add exercises later.', textAlign: TextAlign.center),
- const SizedBox(height: 24),
-          TextFormField(
-            controller: _programNameController,
- decoration: const InputDecoration(
-              labelText: 'Program Name (e.g., "My Lifting Plan")',
-              border: OutlineInputBorder(),
- ),
- enabled: !_isCreated, // Disable field after creation
-          ),
- const SizedBox(height: 24),
- if (_isLoading)
- const CircularProgressIndicator()
- else
-            ElevatedButton.icon(
- style: ElevatedButton.styleFrom(
- minimumSize: const Size.fromHeight(50),
- backgroundColor: _isCreated ? Colors.green : Theme.of(context).primaryColor,
- ),
-              onPressed: _isCreated ? null : _createProgram, // Disable button after creation
- icon: Icon(_isCreated ? Icons.check : Icons.add),
- label: Text(_isCreated ? 'Program Created!' : 'Create Program'),
-            ),
-        ],
- ),
- );
-  }
-}
-
-// Add this class to the bottom of lib/screens/onboarding_screen.dart
 
 class _NutritionGoalsPage extends StatefulWidget {
   const _NutritionGoalsPage();
@@ -541,13 +444,11 @@ class _NutritionGoalsPageState extends State<_NutritionGoalsPage> {
     final suggestions = await service.suggestGoals(provider.finalProfile);
 
     if (mounted && suggestions != null) {
-      // Update the text controllers with the AI's suggestions
       _caloriesController.text = (suggestions['targetCalories'] ?? 0).toString();
       _proteinController.text = (suggestions['targetProtein'] ?? 0).toString();
       _carbsController.text = (suggestions['targetCarbs'] ?? 0).toString();
       _fatController.text = (suggestions['targetFat'] ?? 0).toString();
 
-      // Also update the provider so the data persists if the user navigates away and back
       provider.updateNutritionGoals(
         calories: (suggestions['targetCalories'] as num?)?.toDouble() ?? 0.0,
         protein: (suggestions['targetProtein'] as num?)?.toDouble() ?? 0.0,
@@ -561,10 +462,8 @@ class _NutritionGoalsPageState extends State<_NutritionGoalsPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Watch the provider to keep the text fields in sync
     final provider = context.watch<OnboardingProvider>();
     
-    // Initialize the text fields once from the provider's data
     if (!_isInit) {
       _caloriesController.text = provider.finalProfile.targetCalories?.toStringAsFixed(0) ?? '';
       _proteinController.text = provider.finalProfile.targetProtein?.toStringAsFixed(0) ?? '';
@@ -583,7 +482,7 @@ class _NutritionGoalsPageState extends State<_NutritionGoalsPage> {
         ElevatedButton.icon(
           onPressed: _isAiLoading ? null : _getAiSuggestions,
           icon: _isAiLoading
-              ? Container(width: 20, height: 20, child: const CircularProgressIndicator(strokeWidth: 2))
+              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
               : const Icon(Icons.auto_awesome),
           label: const Text('Ask AI for Suggestions'),
         ),
@@ -618,4 +517,205 @@ class _NutritionGoalsPageState extends State<_NutritionGoalsPage> {
       ],
     );
   }
+}
+
+class _CreateProgramPage extends StatefulWidget {
+  const _CreateProgramPage();
+
+  @override
+  State<_CreateProgramPage> createState() => _CreateProgramPageState();
+}
+
+enum CreationMode { manual, ai }
+
+class _CreateProgramPageState extends State<_CreateProgramPage> {
+  final _textController = TextEditingController();
+  final _firestoreService = FirestoreService();
+
+  CreationMode _mode = CreationMode.manual;
+  final List<String> _allDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  final Set<String> _selectedDays = {'Mon', 'Wed', 'Fri'};
+  bool _isLoading = false;
+  bool _isCreated = false;
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _createProgram() async {
+    final programNameOrPrompt = _textController.text.trim();
+    if (programNameOrPrompt.isEmpty || _selectedDays.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a name/prompt and select at least one day.')),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final authService = context.read<AuthService>();
+      final onboardingProvider = context.read<OnboardingProvider>();
+      final userId = authService.currentUser?.uid;
+
+      if (userId != null) {
+        // TODO: Handle AI creation mode
+        final newProgramId = await _firestoreService.createNewWorkoutProgram(
+          userId,
+          programNameOrPrompt,
+          _selectedDays.toList(),
+        );
+        onboardingProvider.updateActiveProgramId(newProgramId);
+        setState(() => _isCreated = true);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Failed to create program: $e")),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
+    return ListView(
+      padding: const EdgeInsets.all(16.0),
+      children: [
+        Text(
+          'Create Your First Program',
+          style: textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 24),
+        
+        SegmentedButton<CreationMode>(
+          segments: const [
+            ButtonSegment(value: CreationMode.manual, label: Text('Create Manually')),
+            ButtonSegment(value: CreationMode.ai, label: Text('Ask AI')),
+          ],
+          selected: {_mode},
+          onSelectionChanged: (Set<CreationMode> newSelection) {
+            setState(() => _mode = newSelection.first);
+          },
+        ),
+        const SizedBox(height: 24),
+
+        TextFormField(
+          controller: _textController,
+          decoration: InputDecoration(
+            labelText: _mode == CreationMode.manual
+                ? 'Program Name (e.g., "My Lifting Plan")'
+                : 'Describe the program you want...',
+            hintText: _mode == CreationMode.ai
+                ? 'e.g., "A 3-day upper/lower split for beginners"'
+                : null,
+            border: const OutlineInputBorder(),
+          ),
+          enabled: !_isCreated,
+        ),
+        const SizedBox(height: 24),
+
+        Text('Select Workout Days', style: textTheme.titleMedium),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8.0,
+          children: _allDays.map((day) {
+            return FilterChip(
+              label: Text(day),
+              selected: _selectedDays.contains(day),
+              onSelected: _isCreated ? null : (bool selected) {
+                setState(() {
+                  if (selected) {
+                    _selectedDays.add(day);
+                  } else {
+                    _selectedDays.remove(day);
+                  }
+                });
+              },
+            );
+          }).toList(),
+        ),
+        const SizedBox(height: 32),
+        
+        if (_isLoading)
+          const Center(child: CircularProgressIndicator())
+        else
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              minimumSize: const Size.fromHeight(50),
+              backgroundColor: _isCreated ? Colors.green : Theme.of(context).primaryColor,
+              foregroundColor: Theme.of(context).colorScheme.onPrimary,
+            ),
+            onPressed: _isCreated ? null : _createProgram,
+            icon: Icon(_isCreated ? Icons.check : Icons.add),
+            label: Text(_isCreated ? 'Program Created!' : 'Create Program'),
+          ),
+      ],
+    );
+  }
+}
+
+class _SummaryPage extends StatelessWidget {
+  const _SummaryPage();
+  @override
+  Widget build(BuildContext context) {
+    final profile = context.watch<OnboardingProvider>().finalProfile;
+    final bool isImperial = profile.unitSystem == 'imperial';
+    final goal = profile.primaryGoal ?? 'Not Set';
+    // REMOVED: activityLevel is now part of the new Diet/Activity page
+    // final activity = profile.activityLevel ?? 'Not Set';
+    final sex = profile.biologicalSex ?? 'Not Set';
+    final weightValue = profile.weight?['value'] as double?;
+    final weightDisplay = weightValue != null ? '${weightValue.toStringAsFixed(1)} ${profile.weight?['unit']}' : 'Not Set';
+    final heightCm = profile.height?['value'] as double?;
+    String heightDisplay = 'Not Set';
+    if (heightCm != null && heightCm > 0) {
+      if (isImperial) {
+        final totalInches = heightCm * 0.393701;
+        final feet = totalInches ~/ 12;
+        final inches = (totalInches % 12).toStringAsFixed(1);
+        heightDisplay = '$feet ft $inches in';
+      } else {
+        heightDisplay = '${heightCm.toStringAsFixed(1)} cm';
+      }
+    }
+
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Ready to go?', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 24),
+            Text('Goal: $goal', style: const TextStyle(fontSize: 18)),
+            const SizedBox(height: 8),
+            Text('Sex: $sex', style: const TextStyle(fontSize: 18)),
+            const SizedBox(height: 8),
+            // REMOVED: Redundant activity level display
+            // Text('Activity: $activity', style: const TextStyle(fontSize: 18)),
+            // const SizedBox(height: 8),
+            Text('Weight: $weightDisplay', style: const TextStyle(fontSize: 18)),
+            const SizedBox(height: 8),
+            Text('Height: $heightDisplay', style: const TextStyle(fontSize: 18)),
+            const SizedBox(height: 32),
+            const Text(
+              'You can always change these details later in your profile.',
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  } 
 }

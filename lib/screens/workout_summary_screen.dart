@@ -181,7 +181,7 @@ class _WorkoutSummaryScreenState extends State<WorkoutSummaryScreen> {
               ),
             ),
           );
-        }).toList(),
+        }),
       ],
     );
   }

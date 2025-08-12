@@ -1,0 +1,57 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    // NEW: A lenient function just for creating a new user.
+    // It only checks for the fields our app creates by default.
+    function isValidNewUserProfile(data) {
+      return
+        data.onboardingCompleted == false &&
+        data.unitSystem == 'imperial' &&
+        data.targetCalories == 0.0 &&
+        data.targetProtein == 0.0 &&
+        data.targetCarbs == 0.0 &&
+        data.targetFat == 0.0;
+    }
+
+    // The strict function for validating a complete profile during an update.
+    function isCompleteUserProfile(data) {
+      return
+        data.activityLevel is string &&
+        data.primaryGoal is string &&
+        data.biologicalSex is string &&
+        data.unitSystem is string &&
+        data.onboardingCompleted is bool &&
+        data.weight is map &&
+        data.height is map &&
+        data.targetCalories is number &&
+        data.targetProtein is number &&
+        data.targetCarbs is number &&
+        data.targetFat is number &&
+        (data.activeProgramId is string || data.activeProgramId == null) &&
+        (data.bodyFatPercentage is number || data.bodyFatPercentage == null) &&
+        (data.measurements is map || data.measurements == null);
+    }
+
+    match /userProfiles/{userId} {
+      allow read: if isSignedIn() && isOwner(userId);
+      // USE THE LENIENT RULE FOR CREATE
+      allow create: if isSignedIn() && isOwner(userId) && isValidNewUserProfile(request.resource.data);
+      // USE THE STRICT RULE FOR UPDATE
+      allow update: if isSignedIn() && isOwner(userId) && isCompleteUserProfile(request.resource.data);
+      allow delete: if false;
+
+      match /{subcollection}/{docId=**} {
+        allow read, write, delete: if isSignedIn() && isOwner(userId);
+      }
+    }
+  }
+}

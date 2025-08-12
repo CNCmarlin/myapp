@@ -26,9 +26,6 @@ Future<void> main() async {
     androidProvider: kDebugMode ? AndroidProvider.debug : AndroidProvider.playIntegrity,
   );
 
-  FirebaseAppCheck.instance.onTokenChange.listen((token) {
-    print("App Check DEBUG TOKEN: $token");
-  });
 
   runApp(
     MultiProvider(

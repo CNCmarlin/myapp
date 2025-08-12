@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:myapp/models/user_profile.dart';
 //import 'package:myapp/models/workout_data.dart';
+import 'package:provider/provider.dart';
+//import 'package.provider/provider.dart';
 import 'package:myapp/providers/profile_provider.dart';
 import 'package:myapp/providers/user_profile_provider.dart';
-import 'package:provider/provider.dart';
 
 enum ActiveProfileView { goals, stats }
 
@@ -66,6 +67,7 @@ class _GoalsSettingsView extends StatefulWidget {
 }
 
 class _GoalsSettingsViewState extends State<_GoalsSettingsView> {
+  // Local state variables to hold UI selections
   String? _selectedActivityLevel;
   String? _selectedPrimaryGoal;
   String? _selectedProgramId;
@@ -74,19 +76,33 @@ class _GoalsSettingsViewState extends State<_GoalsSettingsView> {
   final _targetCarbsController = TextEditingController();
   final _targetFatController = TextEditingController();
   bool _isInit = false;
+  final bool _isAiLoading = false; // State for AI suggestion button
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<ProfileProvider>().loadAvailablePrograms();
+    });
+  }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     final userProfile = context.watch<UserProfileProvider>().userProfile;
     if (userProfile != null && !_isInit) {
+      // Populate state from the provider when the widget first loads
       _selectedActivityLevel = userProfile.activityLevel;
       _selectedPrimaryGoal = userProfile.primaryGoal;
       _selectedProgramId = userProfile.activeProgramId;
-      _targetCaloriesController.text = userProfile.targetCalories?.toStringAsFixed(0) ?? '';
-      _targetProteinController.text = userProfile.targetProtein?.toStringAsFixed(0) ?? '';
-      _targetCarbsController.text = userProfile.targetCarbs?.toStringAsFixed(0) ?? '';
-      _targetFatController.text = userProfile.targetFat?.toStringAsFixed(0) ?? '';
+      _targetCaloriesController.text =
+          userProfile.targetCalories?.toStringAsFixed(0) ?? '';
+      _targetProteinController.text =
+          userProfile.targetProtein?.toStringAsFixed(0) ?? '';
+      _targetCarbsController.text =
+          userProfile.targetCarbs?.toStringAsFixed(0) ?? '';
+      _targetFatController.text =
+          userProfile.targetFat?.toStringAsFixed(0) ?? '';
       _isInit = true;
     }
   }
@@ -114,6 +130,7 @@ class _GoalsSettingsViewState extends State<_GoalsSettingsView> {
 
   @override
   Widget build(BuildContext context) {
+    // Watch both providers
     final profileProvider = context.watch<ProfileProvider>();
     final userProfile = context.watch<UserProfileProvider>().userProfile;
     if (userProfile == null) return const Center(child: CircularProgressIndicator());
@@ -133,7 +150,15 @@ class _GoalsSettingsViewState extends State<_GoalsSettingsView> {
                 const SizedBox(height: 16),
                 DropdownButtonFormField<String>(value: _selectedActivityLevel, decoration: const InputDecoration(labelText: 'Activity Level'), items: ['Sedentary', 'Lightly Active', 'Moderately Active', 'Very Active', 'Extra Active'].map((String value) => DropdownMenuItem<String>(value: value, child: Text(value))).toList(), onChanged: (String? newValue) => setState(() => _selectedActivityLevel = newValue)),
                 const SizedBox(height: 16),
-                DropdownButtonFormField<String>(decoration: const InputDecoration(labelText: 'Active Workout Program'), value: _selectedProgramId, items: profileProvider.availablePrograms.map((program) => DropdownMenuItem<String>(value: program.id, child: Text(program.name))).toList(), onChanged: (String? newValue) => setState(() => _selectedProgramId = newValue)),
+                // This dropdown now shows a loading indicator
+                profileProvider.isLoadingPrograms
+                  ? const Center(child: CircularProgressIndicator())
+                  : DropdownButtonFormField<String>(
+                      decoration: const InputDecoration(labelText: 'Active Workout Program'),
+                      value: _selectedProgramId,
+                      items: profileProvider.availablePrograms.map((program) => DropdownMenuItem<String>(value: program.id, child: Text(program.name))).toList(),
+                      onChanged: (String? newValue) => setState(() => _selectedProgramId = newValue)
+                    ),
               ],
             ),
           ),
@@ -144,7 +169,6 @@ class _GoalsSettingsViewState extends State<_GoalsSettingsView> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // We can add the AI Suggestion button here later
                 Text('Nutrition Goals', style: Theme.of(context).textTheme.titleLarge),
                 const SizedBox(height: 16),
                 Row(children: [
@@ -181,14 +205,12 @@ class _BodyStatsView extends StatefulWidget {
 }
 
 class _BodyStatsViewState extends State<_BodyStatsView> {
-  // All state and controllers for stats now live here
   final _weightController = TextEditingController();
   final _heightFtController = TextEditingController();
   final _heightInController = TextEditingController();
   final _heightCmController = TextEditingController();
   final _bodyFatController = TextEditingController();
   final Map<String, TextEditingController> _measurementControllers = { for (var item in ['Waist', 'Hips', 'Chest', 'Arms', 'Thighs']) item: TextEditingController() };
-  
   bool _isMetric = true;
   String? _selectedBiologicalSex;
   bool _isInit = false;

@@ -63,3 +63,4 @@ modules.xml
 
 # Secrets
 firebase_options.dart
+node_modules

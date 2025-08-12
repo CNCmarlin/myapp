@@ -12,11 +12,16 @@ class UserProfile {
   Map<String, dynamic>? measurements;
   bool onboardingCompleted;
 
-  // NEW: Fields for nutrition goals
+  // Nutrition goals
   double? targetCalories;
   double? targetProtein;
   double? targetCarbs;
   double? targetFat;
+
+  // NEW: Fields for enhanced onboarding
+  bool prefersLowCarb;
+  double weeklyWeightLossGoal; // In lbs or kg, consistent with unitSystem
+  int exerciseDaysPerWeek;
 
   UserProfile({
     this.activityLevel,
@@ -29,11 +34,14 @@ class UserProfile {
     this.height,
     this.measurements,
     this.onboardingCompleted = false,
-    // NEW: Add to constructor with default values
     this.targetCalories = 0.0,
     this.targetProtein = 0.0,
     this.targetCarbs = 0.0,
     this.targetFat = 0.0,
+    // NEW: Add to constructor with default values
+    this.prefersLowCarb = false,
+    this.weeklyWeightLossGoal = 1.0,
+    this.exerciseDaysPerWeek = 3,
   });
 
   Map<String, dynamic> toMap() {
@@ -48,11 +56,14 @@ class UserProfile {
       'height': height,
       'measurements': measurements,
       'onboardingCompleted': onboardingCompleted,
-      // NEW: Add to toMap
       'targetCalories': targetCalories,
       'targetProtein': targetProtein,
       'targetCarbs': targetCarbs,
       'targetFat': targetFat,
+      // NEW: Add to toMap
+      'prefersLowCarb': prefersLowCarb,
+      'weeklyWeightLossGoal': weeklyWeightLossGoal,
+      'exerciseDaysPerWeek': exerciseDaysPerWeek,
     };
   }
 
@@ -68,11 +79,14 @@ class UserProfile {
       height: map['height'],
       measurements: map['measurements'],
       onboardingCompleted: map['onboardingCompleted'] ?? false,
-      // NEW: Add to fromMap with null-safe defaults
       targetCalories: (map['targetCalories'] as num?)?.toDouble() ?? 0.0,
       targetProtein: (map['targetProtein'] as num?)?.toDouble() ?? 0.0,
       targetCarbs: (map['targetCarbs'] as num?)?.toDouble() ?? 0.0,
       targetFat: (map['targetFat'] as num?)?.toDouble() ?? 0.0,
+      // NEW: Add to fromMap with null-safe defaults
+      prefersLowCarb: map['prefersLowCarb'] ?? false,
+      weeklyWeightLossGoal: (map['weeklyWeightLossGoal'] as num?)?.toDouble() ?? 1.0,
+      exerciseDaysPerWeek: (map['exerciseDaysPerWeek'] as num?)?.toInt() ?? 3,
     );
   }
 
@@ -92,11 +106,14 @@ class UserProfile {
     Map<String, dynamic>? height,
     Map<String, dynamic>? measurements,
     bool? onboardingCompleted,
-    // NEW: Add to copyWith
     double? targetCalories,
     double? targetProtein,
     double? targetCarbs,
     double? targetFat,
+    // NEW: Add to copyWith
+    bool? prefersLowCarb,
+    double? weeklyWeightLossGoal,
+    int? exerciseDaysPerWeek,
   }) {
     return UserProfile(
       activityLevel: activityLevel ?? this.activityLevel,
@@ -109,11 +126,14 @@ class UserProfile {
       height: height ?? this.height,
       measurements: measurements ?? this.measurements,
       onboardingCompleted: onboardingCompleted ?? this.onboardingCompleted,
-      // NEW: Add to copyWith return
       targetCalories: targetCalories ?? this.targetCalories,
       targetProtein: targetProtein ?? this.targetProtein,
       targetCarbs: targetCarbs ?? this.targetCarbs,
       targetFat: targetFat ?? this.targetFat,
+      // NEW: Add to copyWith return
+      prefersLowCarb: prefersLowCarb ?? this.prefersLowCarb,
+      weeklyWeightLossGoal: weeklyWeightLossGoal ?? this.weeklyWeightLossGoal,
+      exerciseDaysPerWeek: exerciseDaysPerWeek ?? this.exerciseDaysPerWeek,
     );
   }
 }

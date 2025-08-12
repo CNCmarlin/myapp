@@ -1,5 +1,3 @@
-// lib/providers/onboarding_provider.dart
-
 import 'package:flutter/material.dart';
 import 'package:myapp/models/user_profile.dart'; // Adjust import if needed
 
@@ -38,9 +36,6 @@ class OnboardingProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // Note: For values like weight and height, the UI will handle the logic
-  // for metric vs. imperial conversion before calling these methods.
-  // These methods expect the data in a consistent format for saving.
   void updateWeight(double value, String unit) {
     _temporaryProfile =
         _temporaryProfile.copyWith(weight: {'value': value, 'unit': unit});
@@ -53,8 +48,6 @@ class OnboardingProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // In lib/providers/onboarding_provider.dart
-
   void updateNutritionGoals(
       {double? calories, double? protein, double? carbs, double? fat}) {
     _temporaryProfile = _temporaryProfile.copyWith(
@@ -63,6 +56,23 @@ class OnboardingProvider with ChangeNotifier {
       targetCarbs: carbs ?? _temporaryProfile.targetCarbs,
       targetFat: fat ?? _temporaryProfile.targetFat,
     );
+    notifyListeners();
+  }
+  
+  // NEW: Methods for enhanced onboarding data
+  
+  void updatePrefersLowCarb(bool prefersLowCarb) {
+    _temporaryProfile = _temporaryProfile.copyWith(prefersLowCarb: prefersLowCarb);
+    notifyListeners();
+  }
+
+  void updateWeeklyWeightLossGoal(double goal) {
+    _temporaryProfile = _temporaryProfile.copyWith(weeklyWeightLossGoal: goal);
+    notifyListeners();
+  }
+
+  void updateExerciseDaysPerWeek(int days) {
+    _temporaryProfile = _temporaryProfile.copyWith(exerciseDaysPerWeek: days);
     notifyListeners();
   }
 }

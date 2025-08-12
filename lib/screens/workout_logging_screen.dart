@@ -1,13 +1,13 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
-//import 'package:myapp/models/ai_workout_update.dart';
 import 'package:myapp/models/chat_message.dart';
 import 'package:myapp/models/workout_data.dart';
-//import 'package:myapp/providers/auth_service.dart';
 import 'package:myapp/services/ai_service.dart';
 import 'package:myapp/services/auth_service.dart';
 import 'package:myapp/services/firestore_service.dart';
 import 'package:myapp/screens/workout_summary_screen.dart';
+// FIX: Import the new shared widget
+import 'package:myapp/widgets/shared_info_card.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 
@@ -179,7 +179,7 @@ class _WorkoutLoggingScreenState extends State<WorkoutLoggingScreen> {
       await _firestoreService.saveInProgressWorkout(userId, _sessionWorkout!);
       _chatHistory.add(ChatMessage(text: update.responseMessage, isUser: false));
     } else if (update != null) {
-       _chatHistory.add(ChatMessage(text: update.responseMessage, isUser: false));
+      _chatHistory.add(ChatMessage(text: update.responseMessage, isUser: false));
     }
     else {
       _chatHistory.add(
@@ -335,7 +335,7 @@ class _WorkoutLoggingScreenState extends State<WorkoutLoggingScreen> {
             decoration: BoxDecoration(
               color: message.isUser
                   ? Theme.of(context).colorScheme.primary
-                  : Theme.of(context).colorScheme.surfaceVariant,
+                  : Theme.of(context).colorScheme.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(16),
             ),
             child: Text(
@@ -506,6 +506,7 @@ class _WorkoutLoggingScreenState extends State<WorkoutLoggingScreen> {
     );
   }
 
+  // FIX: This entire method is refactored to use the new SharedInfoCard
   Widget _buildProgressPanel() {
     if (_selectedExerciseNames.isEmpty) {
       return Align(
@@ -517,8 +518,9 @@ class _WorkoutLoggingScreenState extends State<WorkoutLoggingScreen> {
             padding: const EdgeInsets.all(16.0),
             width: double.infinity,
             child: const Text(
-                'Select an exercise from the "View Program" panel to see its progress.',
-                textAlign: TextAlign.center),
+              'Select an exercise from the "View Program" panel to see its progress.',
+              textAlign: TextAlign.center,
+            ),
           ),
         ),
       );
@@ -526,6 +528,7 @@ class _WorkoutLoggingScreenState extends State<WorkoutLoggingScreen> {
     final selectedExercises = _sessionWorkout!.exercises
         .where((ex) => _selectedExerciseNames.contains(ex.name))
         .toList();
+
     return Align(
       key: const ValueKey('progress'),
       alignment: Alignment.topCenter,
@@ -534,94 +537,96 @@ class _WorkoutLoggingScreenState extends State<WorkoutLoggingScreen> {
         child: ConstrainedBox(
           constraints: BoxConstraints(
               maxHeight: MediaQuery.of(context).size.height * 0.4),
-          child: ListView.separated(
-            padding: const EdgeInsets.all(16.0),
-            shrinkWrap: true,
+          child: ListView.builder(
+            padding: const EdgeInsets.all(8.0),
             itemCount: selectedExercises.length,
-            separatorBuilder: (context, index) => const Divider(height: 32),
             itemBuilder: (context, index) {
               final exercise = selectedExercises[index];
-              final lastSession = _lastSessionData[exercise.name];
-              int programmedSets = 0;
-              final match =
-                  RegExp(r'(\d+)\s*x').firstMatch(exercise.programTarget);
-              if (match != null) {
-                programmedSets = int.tryParse(match.group(1)!) ?? 0;
-              }
-              int totalRows = max(programmedSets, exercise.sets.length);
-
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '${exercise.name} (${exercise.programTarget})',
-                    style: const TextStyle(
-                        fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-                  const SizedBox(height: 8),
-                  DefaultTextStyle(
-                    style: Theme.of(context).textTheme.bodySmall!.copyWith(fontWeight: FontWeight.bold),
-                    child: Row(
-                      children: const [
-                        SizedBox(width: 40, child: Text('Set')),
-                        SizedBox(width: 90, child: Text("Today's Log")),
-                        SizedBox(width: 90, child: Text('Last Time')),
-                        Expanded(child: Text('Notes')),
-                      ],
-                    ),
-                  ),
-                  const Divider(),
-                  ...List.generate(totalRows, (rowIndex) {
-                    final loggedSet = (rowIndex < exercise.sets.length)
-                        ? exercise.sets[rowIndex]
-                        : null;
-                    final lastSet = (lastSession != null &&
-                            rowIndex < lastSession.sets.length)
-                        ? lastSession.sets[rowIndex]
-                        : null;
-                    final todaysLogWidget = loggedSet != null
-                        ? Text(
-                            '${loggedSet.weight.toStringAsFixed(0)} x ${loggedSet.reps}')
-                        : const Text('---',
-                            style: TextStyle(color: Colors.grey));
-                    final lastTimeLog = lastSet != null
-                        ? '${lastSet.weight.toStringAsFixed(0)} x ${lastSet.reps}'
-                        : 'N/A';
-                    final noteText = loggedSet?.notes ?? '---';
-                    return InkWell(
-                      onTap: () => _showEditNoteDialog(exercise, rowIndex),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 8.0),
-                        decoration: BoxDecoration(
-                          border: Border(
-                              bottom: BorderSide(
-                                  color: Colors.grey.shade200, width: 1)),
-                        ),
-                        child: Row(
-                          children: [
-                            SizedBox(width: 40, child: Text('${rowIndex + 1}')),
-                            SizedBox(width: 90, child: todaysLogWidget),
-                            SizedBox(width: 90, child: Text(lastTimeLog)),
-                            Expanded(
-                              child: Text(
-                                noteText,
-                                style: const TextStyle(
-                                    color: Colors.grey,
-                                    fontStyle: FontStyle.italic),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  }),
-                ],
+              return SharedInfoCard(
+                // Use a simple title and subtitle for the card.
+                title: exercise.name,
+                subtitle: 'Target: ${exercise.programTarget}',
+                // The expandable content is the detailed progress table.
+                expandableContent: _buildExerciseProgressTable(exercise),
               );
             },
           ),
         ),
       ),
+    );
+  }
+  
+  // FIX: Extracted the progress table logic into a helper method.
+  Widget _buildExerciseProgressTable(Exercise exercise) {
+    final lastSession = _lastSessionData[exercise.name];
+    int programmedSets = 0;
+    final match = RegExp(r'(\d+)\s*x').firstMatch(exercise.programTarget);
+    if (match != null) {
+      programmedSets = int.tryParse(match.group(1)!) ?? 0;
+    }
+    int totalRows = max(programmedSets, exercise.sets.length);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        DefaultTextStyle(
+          style: Theme.of(context).textTheme.bodySmall!.copyWith(fontWeight: FontWeight.bold),
+          child: Row(
+            children: const [
+              SizedBox(width: 40, child: Text('Set')),
+              SizedBox(width: 90, child: Text("Today's Log")),
+              SizedBox(width: 90, child: Text('Last Time')),
+              Expanded(child: Text('Notes')),
+            ],
+          ),
+        ),
+        const Divider(),
+        ...List.generate(totalRows, (rowIndex) {
+          final loggedSet = (rowIndex < exercise.sets.length)
+              ? exercise.sets[rowIndex]
+              : null;
+          final lastSet = (lastSession != null &&
+                  rowIndex < lastSession.sets.length)
+              ? lastSession.sets[rowIndex]
+              : null;
+          final todaysLogWidget = loggedSet != null
+              ? Text(
+                  '${loggedSet.weight.toStringAsFixed(0)} x ${loggedSet.reps}')
+              : const Text('---',
+                  style: TextStyle(color: Colors.grey));
+          final lastTimeLog = lastSet != null
+              ? '${lastSet.weight.toStringAsFixed(0)} x ${lastSet.reps}'
+              : 'N/A';
+          final noteText = loggedSet?.notes ?? '---';
+          return InkWell(
+            onTap: () => _showEditNoteDialog(exercise, rowIndex),
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 8.0),
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(
+                      color: Colors.grey.shade200, width: 1)),
+              ),
+              child: Row(
+                children: [
+                  SizedBox(width: 40, child: Text('${rowIndex + 1}')),
+                  SizedBox(width: 90, child: todaysLogWidget),
+                  SizedBox(width: 90, child: Text(lastTimeLog)),
+                  Expanded(
+                    child: Text(
+                      noteText,
+                      style: const TextStyle(
+                          color: Colors.grey,
+                          fontStyle: FontStyle.italic),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }),
+      ],
     );
   }
 }

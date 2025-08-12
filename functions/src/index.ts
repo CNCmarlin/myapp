@@ -1,6 +1,12 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
-import {VertexAI} from "@google-cloud/vertexai";
+import {
+  VertexAI,
+  HarmCategory,
+  HarmBlockThreshold,
+  Tool,
+  FunctionDeclarationSchema,
+} from "@google-cloud/vertexai";
 
 admin.initializeApp();
 const firestore = admin.firestore();
@@ -11,178 +17,150 @@ if (!projectId) {
 }
 
 const vertexAI = new VertexAI({project: projectId, location: "us-central1"});
+
 const generativeModel = vertexAI.getGenerativeModel({
   model: "gemini-2.5-flash",
+  safetySettings: [
+    {
+      category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+      threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+    },
+    {
+      category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+      threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+    },
+  ],
 });
 
-// FIX: Update the function signature to use the new 'request' object
+// == HELPER INTERFACES ==
+interface WorkoutDay {
+  dayName: string;
+  exercises: { name: string; sets: number; reps: number }[];
+}
+
+// == FUNCTIONS ==
+
 export const generateWeeklyInsight = functions.https.onCall(
   async (request) => {
-    // 1. Authenticate the user using request.auth
     if (!request.auth) {
       throw new functions.https.HttpsError(
-        "unauthenticated",
-        "You must be logged in to request an insight.",
-      );
+        "unauthenticated", "You must be logged in.");
     }
     const userId = request.auth.uid;
-
-    // 2. Fetch the last 7 days of data from Firestore
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-    const workoutLogsPromise = firestore.collection("users").doc(userId)
-      .collection("workoutLogs").where("date", ">=", sevenDaysAgo).get();
-    const nutritionLogsPromise = firestore.collection("users").doc(userId)
-      .collection("nutritionLogs")
-      .where("date", ">=", admin.firestore.Timestamp.fromDate(sevenDaysAgo))
-      .get();
+    try {
+      const workoutLogsPromise = firestore
+        .collection("userProfiles").doc(userId)
+        .collection("workoutLogs").where("date", ">=", sevenDaysAgo).get();
+      const nutritionLogsPromise = firestore
+        .collection("userProfiles").doc(userId)
+        .collection("nutritionLogs")
+        .where("date", ">=", admin.firestore.Timestamp.fromDate(sevenDaysAgo))
+        .get();
 
-    const [workoutSnapshots, nutritionSnapshots] = await Promise.all([
-      workoutLogsPromise,
-      nutritionLogsPromise,
-    ]);
+      const [workoutSnapshots, nutritionSnapshots] = await Promise.all([
+        workoutLogsPromise,
+        nutritionLogsPromise,
+      ]);
 
-    const workoutData = workoutSnapshots.docs.map((doc) => doc.data());
-    const nutritionData = nutritionSnapshots.docs.map((doc) => doc.data());
+      const workoutData = workoutSnapshots.docs.map((doc) => doc.data());
+      const nutritionData = nutritionSnapshots.docs.map((doc) => doc.data());
 
-    if (workoutData.length === 0 && nutritionData.length === 0) {
-      return {message: "No data found for the last 7 days."};
-    }
+      if (workoutData.length === 0 && nutritionData.length === 0) {
+        return {message: "No data found for the last 7 days."};
+      }
 
-    // 3. Engineer the prompt for the AI Coach
-    const prompt = `
+      const prompt = `
         You are an expert fitness coach. Analyze the following data for the
         last 7 days and provide a concise, encouraging summary in markdown
         with three sections: "Workout Consistency", "Nutrition Highlights",
         and "Recommendations for Next Week".
-
         Workout Logs: ${JSON.stringify(workoutData)}
         Nutrition Logs: ${JSON.stringify(nutritionData)}
       `;
 
-    // 4. Call the Gemini AI model
-    let aiResponseText: string;
-    try {
-      const resp = await generativeModel.generateContent(prompt);
-      const firstPart = resp.response.candidates?.[0].content.parts[0];
-      aiResponseText = firstPart?.text ??
-          "I was unable to generate insights at this time.";
+      const result = await generativeModel.generateContent(prompt);
+      const aiResponseText = result.response.candidates?.[0]
+        ?.content?.parts?.[0]?.text ?? "";
+
+      const insightDoc = {
+        generatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        summaryText: aiResponseText,
+        type: "weekly",
+      };
+
+      await firestore.collection("userProfiles").doc(userId)
+        .collection("insights").add(insightDoc);
+
+      return {message: "Insight generated successfully!"};
     } catch (error) {
-      console.error("Error calling AI model:", error);
+      console.error("Error in generateWeeklyInsight:", error);
       throw new functions.https.HttpsError(
-        "internal",
-        "Failed to generate AI insight.",
-      );
+        "internal", "Failed to generate weekly insight.");
     }
-
-    // 5. Save the insight back to Firestore
-    const insightDoc = {
-      generatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      summaryText: aiResponseText,
-      type: "weekly",
-    };
-
-    await firestore.collection("users").doc(userId)
-      .collection("insights").add(insightDoc);
-
-    return {message: "Insight generated successfully!"};
   },
 );
-// In functions/src/index.ts
 
 export const suggestNutritionGoals = functions.https.onCall(
   async (request) => {
     if (!request.auth) {
       throw new functions.https.HttpsError(
-        "unauthenticated",
-        "You must be logged in to request suggestions.",
-      );
+        "unauthenticated", "You must be logged in.");
     }
 
     const {
-      primaryGoal,
-      biologicalSex,
-      weightKg,
-      heightCm,
-      activityLevel,
+      primaryGoal, biologicalSex, weightKg, heightCm, activityLevel,
     } = request.data;
     if (
       !primaryGoal || !biologicalSex || !weightKg || !heightCm || !activityLevel
     ) {
       throw new functions.https.HttpsError(
-        "invalid-argument",
-        "Missing required profile data.",
-      );
+        "invalid-argument", "Missing required profile data.");
     }
 
     const prompt = `
-        You are an expert nutritionist. Calculate daily nutrition goals
-        (calories, protein, carbs, fat) based on user data.
-
-        User Data:
-        - Goal: ${primaryGoal}
-        - Sex: ${biologicalSex}
-        - Weight: ${weightKg} kg
-        - Height: ${heightCm} cm
-        - Activity: ${activityLevel}
-
-        Calculation Steps:
-        1. Use Mifflin-St Jeor for BMR.
-        2. Use TDEE multipliers (Sedentary: 1.2, Lightly: 1.375, etc.).
-        3. Adjust TDEE: -500 kcal for loss, +300 kcal for gain.
-        4. Macros: Protein 1.8g/kg, Fat 25% of kcal, Carbs for remainder.
-        5. (P/C = 4 kcal/g, F = 9 kcal/g).
-
-        IMPORTANT: Respond with ONLY a valid JSON object. All values must be
-        rounded to a whole number.
-        {
-          "targetCalories": number,
-          "targetProtein": number,
-          "targetCarbs": number,
-          "targetFat": number
-        }
-      `;
+      You are an expert nutritionist. Calculate daily nutrition goals
+      (calories, protein, carbs, fat) based on user data.
+      IMPORTANT: Respond with ONLY a valid JSON object.
+      User Data:
+      - Goal: ${primaryGoal}, Sex: ${biologicalSex}, Weight: ${weightKg} kg,
+      - Height: ${heightCm} cm, Activity: ${activityLevel}
+    `;
 
     try {
-      const resp = await generativeModel.generateContent(prompt);
-      const jsonString = resp.response.candidates?.[0]
-        .content.parts[0].text ?? "{}";
+      const result = await generativeModel.generateContent(prompt);
+      let jsonString = result.response.candidates?.[0]
+        ?.content?.parts?.[0]?.text ?? "{}";
+
+      if (jsonString.startsWith("```json")) {
+        jsonString = jsonString.substring(7, jsonString.length - 3);
+      }
 
       const goals = JSON.parse(jsonString);
       return goals;
     } catch (error) {
-      console.error("Error calling AI model for nutrition goals:", error);
+      console.error("Error in suggestNutritionGoals:", error);
       throw new functions.https.HttpsError(
-        "internal",
-        "Failed to generate AI nutrition goals.",
-      );
+        "internal", "Failed to generate nutrition goals.");
     }
   },
 );
 
-// In functions/src/index.ts
-
+// FIX: Restored the missing generateMealInsight function
 export const generateMealInsight = functions.https.onCall(
   async (request) => {
-    // 1. Authenticate the user using the modern 'request' object
     if (!request.auth) {
       throw new functions.https.HttpsError(
-        "unauthenticated",
-        "You must be logged in.",
-      );
+        "unauthenticated", "You must be logged in.");
     }
-
-    // 2. Validate incoming data from request.data
     const {primaryGoal, meal} = request.data;
     if (!primaryGoal || !meal) {
       throw new functions.https.HttpsError(
-        "invalid-argument",
-        "Missing required profile goal or meal data.",
-      );
+        "invalid-argument", "Missing required profile goal or meal data.");
     }
 
-    // 3. Engineer the prompt for the AI Coach
     const prompt = `
         You are a positive and encouraging fitness coach.
         A user is logging a meal. Their primary goal is "${primaryGoal}".
@@ -195,127 +173,257 @@ export const generateMealInsight = functions.https.onCall(
         Your task is to write a single, short, encouraging sentence
         (under 20 words) that positively frames how this meal
         impacts the user's primary goal.
-
-        Example 1:
-        Goal: "Gain Muscle", Meal has high protein.
-        Response: "Great choice! This high-protein meal is perfect for
-        helping you build muscle."
-
-        Example 2:
-        Goal: "Lose Weight", Meal is low in calories.
-        Response: "Excellent! A light and satisfying meal that keeps you
-        perfectly on track with your calorie target."
-
-        Respond with ONLY the single sentence and nothing else.
       `;
 
-    // 4. Call the Gemini AI model
     try {
-      const resp = await generativeModel.generateContent(prompt);
-      const insightText = resp.response.candidates?.[0]
-        .content.parts[0].text ?? "";
+      const result = await generativeModel.generateContent(prompt);
+      const insightText = result.response.candidates?.[0]
+        ?.content?.parts?.[0]?.text ?? "";
 
-      // 5. Return the insight to the app
       return {insightText: insightText.trim()};
     } catch (error) {
       console.error("Error calling AI model for meal insight:", error);
       throw new functions.https.HttpsError(
-        "internal",
-        "Failed to generate AI meal insight.",
-      );
+        "internal", "Failed to generate AI meal insight.");
     }
   },
 );
 
-// We need to define the structure of our WorkoutDay for TypeScript
-interface WorkoutDay {
-  dayName: string;
-  exercises: any[]; // Using 'any' for simplicity for now
-}
-
 export const aiAssistant = functions.https.onCall(
-    async (request) => {
-      if (!request.auth) {
-        throw new functions.https.HttpsError(
-            "unauthenticated",
-            "You must be logged in.",
-        );
-      }
-      const userId = request.auth.uid;
-      const userPrompt = request.data.prompt;
+  async (request) => {
+    if (!request.auth) {
+      throw new functions.https.HttpsError(
+        "unauthenticated", "You must be logged in.");
+    }
+    const userId = request.auth.uid;
+    const {userPrompt} = request.data;
+    if (!userPrompt) {
+      throw new functions.https.HttpsError(
+        "invalid-argument", "A prompt is required.");
+    }
 
-      if (!userPrompt) {
-        throw new functions.https.HttpsError(
-            "invalid-argument",
-            "A prompt is required.",
-        );
-      }
-
-      // 1. Define the "tools" the AI can use.
-      const tools = [{
-        functionDeclarations: [{
+    const createProgramTool: Tool = {
+      functionDeclarations: [
+        {
           name: "createNewWorkoutProgram",
           description: "Creates a new, empty workout program for the user.",
           parameters: {
             type: "OBJECT",
             properties: {
-              name: {
-                type: "STRING",
-                description: "The name of the workout program.",
-              },
-              days: {
-                type: "NUMBER",
-                description: "The number of days in the program.",
-              },
+              name: {type: "STRING"},
+              days: {type: "NUMBER"},
             },
             required: ["name", "days"],
-          },
-        }],
-      }];
+          } as FunctionDeclarationSchema,
+        },
+      ],
+    };
 
-      try {
-        const chat = generativeModel.startChat({tools});
-        const result = await chat.sendMessage(userPrompt);
-        const call = result.response.functionCalls()?.[0];
+    try {
+      const chat = generativeModel.startChat({tools: [createProgramTool]});
+      const result1 = await chat.sendMessage(userPrompt);
+      const call = result1.response.candidates?.[0]
+        ?.content?.parts[0]?.functionCall;
 
-        if (call) {
-          const {name, days} = call.args;
-
-          // 2. Execute the function the AI wants to call.
-          const defaultDays: WorkoutDay[] = Array.from({length: days},
-              (_, i) => ({
-                dayName: `Day ${i + 1}`,
-                exercises: [],
-              }));
-          
-          const newProgram = {name, days: defaultDays};
-          
-          await firestore.collection("users").doc(userId)
-              .collection("workoutPrograms").add(newProgram);
-
-          // 3. Send the result back to the AI to get a final response.
-          const finalResult = await chat.sendMessage([{
+      if (call) {
+        const {name, days} = call.args as { name: string; days: number };
+        const defaultDays: WorkoutDay[] = Array.from(
+          {length: days},
+          (_, i) => ({dayName: `Day ${i + 1}`, exercises: []}),
+        );
+        const newProgram = {name, days: defaultDays};
+        await firestore.collection("userProfiles").doc(userId)
+          .collection("workoutPrograms").add(newProgram);
+        const result2 = await chat.sendMessage([
+          {
             functionResponse: {
               name: "createNewWorkoutProgram",
               response: {name, success: true},
             },
-          }]);
-          
-          const responseText =
-            finalResult.response.candidates?.[0].content.parts[0].text ?? "";
-          return {responseText: responseText.trim()};
-        } else {
-          // If the AI didn't call a function, return its text response
-          const responseText =
-            result.response.candidates?.[0].content.parts[0].text ?? "";
-          return {responseText: responseText.trim()};
-        }
-      } catch (error) {
-        console.error("Error in AI Assistant:", error);
-        throw new functions.https.HttpsError(
-            "internal",
-            "The AI assistant encountered an error.",
-        );
+          },
+        ]);
+        const responseText = result2.response.candidates?.[0]
+          ?.content?.parts[0]?.text ?? "";
+        return {responseText: responseText.trim()};
+      } else {
+        const responseText = result1.response.candidates?.[0]
+          ?.content?.parts[0]?.text ?? "";
+        return {responseText: responseText.trim()};
       }
-    },
+    } catch (error) {
+      console.error("Error in aiAssistant:", error);
+      throw new functions.https.HttpsError(
+        "internal", "The AI assistant encountered an error.");
+    }
+  },
 );
+
+export const processWorkoutUserInput = functions.https.onCall(
+  async (request) => {
+    if (!request.auth) {
+      throw new functions.https.HttpsError(
+        "unauthenticated", "You must be logged in.");
+    }
+    const {userInput, currentWorkout, chatHistory} = request.data;
+    if (!userInput || !currentWorkout) {
+      throw new functions.https.HttpsError(
+        "invalid-argument", "Missing required workout data.");
+    }
+
+    const workoutJson = JSON.stringify(currentWorkout);
+    const historyJson = JSON.stringify(chatHistory);
+
+    const prompt = `
+      You are an expert fitness coach and a precise data entry assistant.
+      Your task is to analyze a user's text command and update their
+      current workout session data accordingly.
+
+      RULES:
+      - Infer the exercise based on the user's command and chat history.
+      - If a correction is provided, modify the LAST logged set.
+      - You MUST return a single, valid JSON object.
+      - If the command is conversational, set "updated_workout_json" to null.
+      - If the user is 'done' with an exercise, update its 'status' field
+        in the JSON to 'complete'.
+
+      INPUT:
+      - current_workout_json: ${workoutJson}
+      - user_input: "${userInput}"
+      - chat_history: ${historyJson}
+
+      OUTPUT FORMAT:
+      {
+        "updated_workout_json": The complete, modified workout JSON object,
+        "response_message": "A short, encouraging confirmation message."
+      }
+    `;
+
+    try {
+      const result = await generativeModel.generateContent(prompt);
+      const responseText = result.response.candidates?.[0]
+        ?.content?.parts?.[0]?.text?.trim() ?? "{}";
+
+      const startIndex = responseText.indexOf("{");
+      const endIndex = responseText.lastIndexOf("}");
+      if (startIndex === -1 || endIndex === -1) {
+        return {response_message: "Sorry, I had trouble with that."};
+      }
+      const jsonString = responseText.substring(startIndex, endIndex + 1);
+      return JSON.parse(jsonString);
+    } catch (error) {
+      console.error("Error in processWorkoutUserInput:", error);
+      throw new functions.https.HttpsError(
+        "internal", "Failed to process workout input.");
+    }
+  },
+);
+
+export const getMealFromText = functions.https.onCall(async (request) => {
+  if (!request.auth) {
+    throw new functions.https.HttpsError(
+      "unauthenticated", "You must be logged in.");
+  }
+  const {inputText} = request.data;
+  if (!inputText) {
+    throw new functions.https.HttpsError(
+      "invalid-argument", "Input text is required.");
+  }
+
+  const prompt = `
+      You are an expert nutrition parser. Analyze the user's text and
+      extract detailed meal information. Return a single, valid JSON object.
+      JSON STRUCTURE:
+      {
+        "mealName": "...", "totalProtein": 0.0, "totalCarbs": 0.0,
+        "totalFat": 0.0, "totalCalories": 0.0, "foods": [
+          {"name": "...", "protein": 0.0, "carbs": 0.0, "fat": 0.0,
+          "calories": 0.0}
+        ]
+      }
+      Meal Description: ${inputText}
+    `;
+
+  try {
+    const result = await generativeModel.generateContent(prompt);
+    let jsonString = result.response.candidates?.[0]
+      ?.content?.parts?.[0]?.text ?? "{}";
+    if (jsonString.startsWith("```json")) {
+      jsonString = jsonString.substring(7, jsonString.length - 3);
+    }
+    return JSON.parse(jsonString);
+  } catch (error) {
+    console.error("Error in getMealFromText:", error);
+    throw new functions.https.HttpsError(
+      "internal", "Failed to parse meal data.");
+  }
+});
+
+// Define interfaces for our data to avoid using 'any'
+interface SetData {
+  weight: number;
+  reps: number;
+}
+
+interface ExerciseData {
+  name: string;
+  sets: SetData[];
+}
+
+export const getWorkoutInsights = functions.https.onCall(async (request) => {
+  if (!request.auth) {
+    throw new functions.https.HttpsError(
+      "unauthenticated", "You must be logged in.");
+  }
+  const {completedWorkout, lastSessionData, userProfile} = request.data;
+  if (!completedWorkout || !lastSessionData || !userProfile) {
+    throw new functions.https.HttpsError(
+      "invalid-argument", "Missing required data for insights.");
+  }
+
+  const unitSuffix = userProfile.unitSystem === "metric" ? "kg" : "lbs";
+
+  const currentSummary = completedWorkout.exercises
+    .map((e: ExerciseData) =>
+      `${e.name}: ${e.sets.map((s: SetData) =>
+        `${s.weight}${unitSuffix} x ${s.reps}reps`).join(", ")}`)
+    .join("\n");
+
+  // FIX: Broke the long line into multiple lines for readability
+  // and to satisfy the linter.
+  const entries = Object.entries(lastSessionData) as
+    [string, ExerciseData | null][];
+  const previousSummary = entries.map(([key, value]) => {
+    if (!value) return `${key}: No data`;
+    return `${value.name}: ${value.sets.map((s: SetData) =>
+      `${s.weight}${unitSuffix} x ${s.reps}reps`).join(", ")}`;
+  }).join("\n");
+
+  const prompt = `
+      You are an expert fitness coach. The user's preferred unit is
+      ${unitSuffix}. Analyze their workout and provide a concise summary.
+      STRUCTURE:
+      Overall Session Insights: [Your summary]
+      ---
+      Performance Notes: [Bulleted list of observations]
+      ---
+      Recommendations for Next Time: [Bulleted list of tips]
+
+      CURRENT WORKOUT:
+      ${currentSummary}
+
+      PREVIOUS WORKOUT:
+      ${previousSummary}
+    `;
+
+  try {
+    const result = await generativeModel.generateContent(prompt);
+    return {
+      insightText: result.response.candidates?.[0]
+        ?.content?.parts?.[0]?.text ?? "",
+    };
+  } catch (error) {
+    console.error("Error in getWorkoutInsights:", error);
+    throw new functions.https.HttpsError(
+      "internal", "Failed to generate workout insights.");
+  }
+});

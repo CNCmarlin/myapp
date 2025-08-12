@@ -1,5 +1,3 @@
-// lib/services/firestore_service.dart
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
@@ -10,10 +8,10 @@ import '../models/meal_data.dart';
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-   Future<WorkoutProgram?> getWorkoutProgramById(String userId, String programId) async {
+  Future<WorkoutProgram?> getWorkoutProgramById(String userId, String programId) async {
     try {
       final programDoc = await _db
-          .collection('users')
+          .collection('userProfiles')
           .doc(userId)
           .collection('workoutPrograms')
           .doc(programId)
@@ -28,61 +26,53 @@ class FirestoreService {
     }
   }
 
-  // In lib/services/firestore_service.dart
+  Future<Workout?> getWorkoutProgram(String userId, String programId, int dayIndex) async {
+    try {
+      final programDoc = await _db
+          .collection('userProfiles')
+          .doc(userId)
+          .collection('workoutPrograms')
+          .doc(programId)
+          .get();
 
-// REPLACE the existing getWorkoutProgram method with this one.
-Future<Workout?> getWorkoutProgram(String userId, String programId, int dayIndex) async {
-  try {
-    // THIS IS THE FIX: We now use the userId to build the correct path
-    // to the user's private subcollection.
-    final programDoc = await _db
-        .collection('users')
-        .doc(userId)
-        .collection('workoutPrograms')
-        .doc(programId)
-        .get();
+      if (!programDoc.exists) {
+        print('Workout program document not found for this user.');
+        return null;
+      }
 
-    if (!programDoc.exists) {
-      print('Workout program document not found for this user.');
+      final workoutProgram = WorkoutProgram.fromMap(programDoc.data()!);
+
+      if (dayIndex < 0 || dayIndex >= workoutProgram.days.length) {
+        print('Invalid day index.');
+        return null;
+      }
+
+      final workoutDay = workoutProgram.days[dayIndex];
+      
+      return Workout(
+        id: '${programDoc.id}_${DateFormat('yyyyMMdd').format(DateTime.now())}',
+        date: DateTime.now(),
+        name: workoutDay.dayName,
+        startTime: DateTime.now(),
+        endTime: DateTime.now(),
+        duration: "N/A",
+        caloriesBurned: 0.0,
+        exercises: workoutDay.exercises,
+      );
+    } catch (e) {
+      print('Error getting workout program: $e');
       return null;
     }
-
-    final workoutProgram = WorkoutProgram.fromMap(programDoc.data()!);
-
-    if (dayIndex < 0 || dayIndex >= workoutProgram.days.length) {
-      print('Invalid day index.');
-      return null;
-    }
-
-    final workoutDay = workoutProgram.days[dayIndex];
-    
-    // The rest of the method's logic for creating a temporary Workout object remains the same.
-    return Workout(
-      id: '${programDoc.id}_${DateFormat('yyyyMMdd').format(DateTime.now())}',
-      date: DateTime.now(),
-      name: workoutDay.dayName,
-      startTime: DateTime.now(),
-      endTime: DateTime.now(),
-      duration: "N/A",
-      caloriesBurned: 0.0,
-      exercises: workoutDay.exercises,
-    );
-  } catch (e) {
-    print('Error getting workout program: $e');
-    return null;
   }
-}
 
   Future<void> logSet(String userId, String workoutId, String exerciseName, ExerciseSet newSet) async {
-    // This method is intentionally left blank as we save the entire workout at the end.
-    // This prevents numerous unnecessary writes to the database for each set.
-    // Logic can be added here in the future if set-by-set real-time updates are desired.
+    // This method is intentionally left blank.
   }
 
   Future<List<WorkoutProgram>> getAllWorkoutPrograms(String userId) async {
     try {
       final snapshot = await _db
-          .collection('users')
+          .collection('userProfiles')
           .doc(userId)
           .collection('workoutPrograms')
           .get();
@@ -95,32 +85,43 @@ Future<Workout?> getWorkoutProgram(String userId, String programId, int dayIndex
     }
   }
   
-  Future<String> createNewWorkoutProgram(String userId, String programName) async {
-  try {
-    final List<WorkoutDay> defaultDays = List.generate(7, (index) {
-      return WorkoutDay(
-        dayName: 'Day ${index + 1}',
-        exercises: [],
+  // REFACTORED METHOD
+  Future<String> createNewWorkoutProgram(
+    String userId,
+    String programName,
+    List<String> dayNames, // Now accepts a list of day names
+  ) async {
+    try {
+      // Create a WorkoutDay for each name provided by the user.
+      final List<WorkoutDay> workoutDays = dayNames.map((name) {
+        return WorkoutDay(
+          dayName: name,
+          exercises: [], // Each day starts with no exercises.
+        );
+      }).toList();
+      
+      final newProgram = WorkoutProgram(
+        id: '', // Firestore will generate this
+        name: programName,
+        days: workoutDays,
       );
-    });
-    
-    final newProgram = WorkoutProgram(id: '', name: programName, days: defaultDays);
 
-    // Get the DocumentReference from the 'add' call
-    final docRef = await _db.collection('users').doc(userId).collection('workoutPrograms').add(newProgram.toMap());
-    
-    // Return the unique ID of the newly created document
-    return docRef.id;
-
-  } catch (e) {
-    throw Exception('Error creating new workout program: $e');
+      final docRef = await _db
+          .collection('userProfiles')
+          .doc(userId)
+          .collection('workoutPrograms')
+          .add(newProgram.toMap());
+      
+      return docRef.id;
+    } catch (e) {
+      throw Exception('Error creating new workout program: $e');
+    }
   }
-}
   
   Future<void> updateWorkoutProgram(String userId, WorkoutProgram updatedProgram) async {
     try {
       final programRef = _db
-          .collection('users')
+          .collection('userProfiles')
           .doc(userId)
           .collection('workoutPrograms')
           .doc(updatedProgram.id);
@@ -133,7 +134,7 @@ Future<Workout?> getWorkoutProgram(String userId, String programId, int dayIndex
   Future<void> updateWorkoutDay(String userId, String programId, int dayIndex, List<Exercise> newExercises) async {
     try {
       final programRef = _db
-          .collection('users')
+          .collection('userProfiles')
           .doc(userId)
           .collection('workoutPrograms')
           .doc(programId);
@@ -158,47 +159,39 @@ Future<Workout?> getWorkoutProgram(String userId, String programId, int dayIndex
     }
   }
 
-  // In lib/services/firestore_service.dart
+  Future<void> updateWorkoutDayName(String userId, String programId, int dayIndex, String newDayName) async {
+    try {
+      final programRef = _db
+          .collection('userProfiles')
+          .doc(userId)
+          .collection('workoutPrograms')
+          .doc(programId);
 
-Future<void> updateWorkoutDayName(String userId, String programId, int dayIndex, String newDayName) async {
-  try {
-    final programRef = _db
-        .collection('users')
-        .doc(userId)
-        .collection('workoutPrograms')
-        .doc(programId);
+      final programDoc = await programRef.get();
+      if (!programDoc.exists) {
+        throw Exception("Program not found");
+      }
 
-    // 1. Get the full program document from Firestore.
-    final programDoc = await programRef.get();
-    if (!programDoc.exists) {
-      throw Exception("Program not found");
+      final program = WorkoutProgram.fromMap(programDoc.data()!);
+
+      if (dayIndex >= 0 && dayIndex < program.days.length) {
+        program.days[dayIndex].dayName = newDayName;
+      } else {
+        throw Exception("Invalid day index");
+      }
+
+      await programRef.set(program.toMap());
+
+    } catch (e) {
+      print('Error updating day name: $e');
+      throw Exception('Error updating day name: $e');
     }
-
-    // 2. Convert the data to our Dart model.
-    final program = WorkoutProgram.fromMap(programDoc.data()!);
-
-    // 3. Modify the day name in the local Dart object.
-    if (dayIndex >= 0 && dayIndex < program.days.length) {
-      program.days[dayIndex].dayName = newDayName;
-    } else {
-      throw Exception("Invalid day index");
-    }
-
-    // 4. Write the entire updated program object back to Firestore.
-    await programRef.set(program.toMap());
-
-  } catch (e) {
-    print('Error updating day name: $e');
-    throw Exception('Error updating day name: $e');
   }
-}
 
-  // Add these two methods inside your FirestoreService class
-  
   Future<void> updateProgramName(String userId, String programId, String newName) async {
     try {
       await _db
-          .collection('users')
+          .collection('userProfiles')
           .doc(userId)
           .collection('workoutPrograms')
           .doc(programId)
@@ -208,55 +201,52 @@ Future<void> updateWorkoutDayName(String userId, String programId, int dayIndex,
     }
   }
 
-Future<void> deleteWorkoutProgram(String userId, String programId) async {
-  try {
-    await _db
-        .collection('users')
+  Future<void> deleteWorkoutProgram(String userId, String programId) async {
+    try {
+      await _db
+          .collection('userProfiles')
+          .doc(userId)
+          .collection('workoutPrograms')
+          .doc(programId)
+          .delete();
+    } catch (e) {
+      throw Exception('Error deleting workout program: $e');
+    }
+  }
+
+  Future<Workout?> getInProgressWorkout(String userId, DateTime date) async {
+    final dateId = DateFormat('yyyy-MM-dd').format(date);
+    final doc = await _db
+        .collection('userProfiles')
         .doc(userId)
-        .collection('workoutPrograms')
-        .doc(programId)
-        .delete();
-  } catch (e) {
-    throw Exception('Error deleting workout program: $e');
+        .collection('inProgressWorkouts')
+        .doc(dateId)
+        .get();
+    if (doc.exists) {
+      return Workout.fromMap(doc.data()!);
+    }
+    return null;
   }
-}
 
-// Fetches an in-progress workout for a specific date, if one exists.
-Future<Workout?> getInProgressWorkout(String userId, DateTime date) async {
-  final dateId = DateFormat('yyyy-MM-dd').format(date);
-  final doc = await _db
-      .collection('users')
-      .doc(userId)
-      .collection('inProgressWorkouts')
-      .doc(dateId)
-      .get();
-  if (doc.exists) {
-    return Workout.fromMap(doc.data()!);
+  Future<void> saveInProgressWorkout(String userId, Workout workout) async {
+    final dateId = DateFormat('yyyy-MM-dd').format(workout.date);
+    await _db
+        .collection('userProfiles')
+        .doc(userId)
+        .collection('inProgressWorkouts')
+        .doc(dateId)
+        .set(workout.toMap());
   }
-  return null;
-}
 
-// Saves the current workout state to the in-progress document.
-Future<void> saveInProgressWorkout(String userId, Workout workout) async {
-  final dateId = DateFormat('yyyy-MM-dd').format(workout.date);
-  await _db
-      .collection('users')
-      .doc(userId)
-      .collection('inProgressWorkouts')
-      .doc(dateId)
-      .set(workout.toMap());
-}
-
-// Deletes the in-progress document, typically after a workout is completed.
-Future<void> deleteInProgressWorkout(String userId, DateTime date) async {
-  final dateId = DateFormat('yyyy-MM-dd').format(date);
-  await _db.collection('users').doc(userId).collection('inProgressWorkouts').doc(dateId).delete();
-}
+  Future<void> deleteInProgressWorkout(String userId, DateTime date) async {
+    final dateId = DateFormat('yyyy-MM-dd').format(date);
+    await _db.collection('userProfiles').doc(userId).collection('inProgressWorkouts').doc(dateId).delete();
+  }
 
   Future<Exercise?> getPreviousExerciseLog(String userId, String exerciseName) async {
     try {
       final workoutLogsSnapshot = await _db
-          .collection('users')
+          .collection('userProfiles')
           .doc(userId)
           .collection('workoutLogs')
           .orderBy('date', descending: true)
@@ -282,7 +272,7 @@ Future<void> deleteInProgressWorkout(String userId, DateTime date) async {
   Future<void> saveWorkoutLog(String userId, Workout workout) async {
     try {
       final workoutRef = _db
-          .collection('users')
+          .collection('userProfiles')
           .doc(userId)
           .collection('workoutLogs')
           .doc(workout.id);
@@ -293,12 +283,12 @@ Future<void> deleteInProgressWorkout(String userId, DateTime date) async {
   }
 
   Future<Workout?> getWorkoutLogByDate(String userId, DateTime date) async {
-     try {
+      try {
       final startOfDay = DateTime(date.year, date.month, date.day);
       final endOfDay = DateTime(date.year, date.month, date.day, 23, 59, 59);
 
       final snapshot = await _db
-          .collection('users')
+          .collection('userProfiles')
           .doc(userId)
           .collection('workoutLogs')
           .where('date', isGreaterThanOrEqualTo: startOfDay)
@@ -316,22 +306,18 @@ Future<void> deleteInProgressWorkout(String userId, DateTime date) async {
     }
   }
   
-// Add this complete method inside your FirestoreService class
-
-Future<void> createNewUserProfile(User user, UserProfile profile) async {
-  try {
-    // We use the user's unique ID from authentication as the document ID
-    // and the UserProfile object's map as the data.
-    await _db.collection('users').doc(user.uid).set(profile.toMap());
-  } catch (e) {
-    print('Error creating new user profile: $e');
-    throw Exception('Error creating new user profile: $e');
+  Future<void> createNewUserProfile(User user, UserProfile profile) async {
+    try {
+      await _db.collection('userProfiles').doc(user.uid).set(profile.toMap());
+    } catch (e) {
+      print('Error creating new user profile: $e');
+      throw Exception('Error creating new user profile: $e');
+    }
   }
-}
 
   Future<void> saveUserProfile(String userId, UserProfile profile) async {
     try {
-      await _db.collection('users').doc(userId).set(profile.toMap());
+      await _db.collection('userProfiles').doc(userId).set(profile.toMap());
     } catch (e) {
       throw Exception('Error saving user profile: $e');
     }
@@ -339,7 +325,7 @@ Future<void> createNewUserProfile(User user, UserProfile profile) async {
 
   Future<UserProfile?> getUserProfile(String userId) async {
     try {
-      final doc = await _db.collection('users').doc(userId).get();
+      final doc = await _db.collection('userProfiles').doc(userId).get();
       if (doc.exists) {
         return UserProfile.fromMap(doc.data()!);
       }
@@ -354,7 +340,7 @@ Future<void> createNewUserProfile(User user, UserProfile profile) async {
     try {
       final formattedDate = DateFormat('yyyy-MM-dd').format(date);
       final doc = await _db
-          .collection('users')
+          .collection('userProfiles')
           .doc(userId)
           .collection('nutritionLogs')
           .doc(formattedDate)
@@ -373,7 +359,7 @@ Future<void> createNewUserProfile(User user, UserProfile profile) async {
     try {
       final formattedDate = DateFormat('yyyy-MM-dd').format(log.date);
       await _db
-          .collection('users')
+          .collection('userProfiles')
           .doc(userId)
           .collection('nutritionLogs')
           .doc(formattedDate)

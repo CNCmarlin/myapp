@@ -114,10 +114,6 @@ flutter_markdown
 3.4
 file:///home/user/.pub-cache/hosted/pub.dev/flutter_markdown-0.7.7+1/
 file:///home/user/.pub-cache/hosted/pub.dev/flutter_markdown-0.7.7+1/lib/
-google_generative_ai
-3.1
-file:///home/user/.pub-cache/hosted/pub.dev/google_generative_ai-0.4.7/
-file:///home/user/.pub-cache/hosted/pub.dev/google_generative_ai-0.4.7/lib/
 google_identity_services_web
 3.4
 file:///home/user/.pub-cache/hosted/pub.dev/google_identity_services_web-0.3.3+1/
@@ -151,9 +147,9 @@ http_parser
 file:///home/user/.pub-cache/hosted/pub.dev/http_parser-4.1.2/
 file:///home/user/.pub-cache/hosted/pub.dev/http_parser-4.1.2/lib/
 intl
-3.3
-file:///home/user/.pub-cache/hosted/pub.dev/intl-0.20.2/
-file:///home/user/.pub-cache/hosted/pub.dev/intl-0.20.2/lib/
+3.0
+file:///home/user/.pub-cache/hosted/pub.dev/intl-0.19.0/
+file:///home/user/.pub-cache/hosted/pub.dev/intl-0.19.0/lib/
 leak_tracker
 3.2
 file:///home/user/.pub-cache/hosted/pub.dev/leak_tracker-10.0.9/

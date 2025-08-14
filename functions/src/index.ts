@@ -19,7 +19,6 @@ if (!projectId) {
 const vertexAI = new VertexAI({project: projectId, location: "us-central1"});
 
 const generativeModel = vertexAI.getGenerativeModel({
-  // FIX: Using the user-requested gemini-2.5-flash model.
   model: "gemini-2.5-flash",
   safetySettings: [
     {
@@ -134,23 +133,57 @@ export const suggestNutritionGoals = functions.https.onCall(
       weight.value * 0.453592 : weight.value;
     const heightCm = height.unit === "cm" ?
       height.value : height.value;
+
+    // FIX: A much more detailed and scientific prompt
     const prompt = `
       You are an expert nutritionist. Your task is to calculate a highly
       personalized daily nutrition plan based on detailed user data.
+
       **USER DATA:**
       - Primary Goal: ${primaryGoal}
       - Biological Sex: ${biologicalSex}
-      - Weight: ${weightKg.toFixed(2)} kg, Height: ${heightCm.toFixed(2)} cm
+      - Weight: ${weightKg.toFixed(2)} kg
+      - Height: ${heightCm.toFixed(2)} cm
       - Daily Activity Level (Non-Exercise): "${activityLevel}"
       - Planned Exercise Days Per Week: ${exerciseDaysPerWeek}
       - Dietary Preference: ${prefersLowCarb ? "Prefers Low-Carb" : "Standard"}
       - Weekly Weight Loss Goal: ${weeklyWeightLossGoal} lbs (if applicable)
-      **IMPORTANT:** Respond with ONLY a valid JSON object.
+
+      **CALCULATION STEPS (Follow these exactly):**
+      1.  Calculate Basal Metabolic Rate (BMR) using the Mifflin-St Jeor
+          equation. Use the user's age, which you must infer is 25 for this
+          calculation.
+      2.  Calculate Total Daily Energy Expenditure (TDEE) by first applying
+          the multiplier for the user's non-exercise "Activity Level" to
+          their BMR (Sedentary: 1.2, Lightly Active: 1.375, Moderately
+          Active: 1.55, Very Active: 1.725).
+      3.  Calculate the weekly exercise calorie bonus: Assume each exercise
+          day burns an additional 400 calories. Multiply this by
+          "Planned Exercise Days Per Week" and divide by 7 to get a daily
+          average exercise bonus. Add this bonus to the TDEE.
+      4.  Adjust final daily calories based on the "Primary Goal":
+          - "Lose Weight": Subtract a daily deficit to meet the
+            "Weekly Weight Loss Goal" (1 lb = 3500 calories).
+          - "Gain Muscle": Add a 300-400 calorie surplus.
+          - "Maintain Weight": Make no adjustment.
+      5.  Calculate Macronutrients:
+          - Protein: 1.8 grams per kg of body weight.
+          - Fat: 25% of total daily calories.
+          - Carbs: The remainder of the calories.
+          - If "Prefers Low-Carb" is true, adjust carbs to be ~20-25% of
+            total calories and increase fat to make up the difference.
+      6.  (Remember: P/C = 4 kcal/g, F = 9 kcal/g).
+
+      **IMPORTANT:** Respond with ONLY a valid JSON object. All values must
+      be rounded to a whole number.
       {
-        "targetCalories": number, "targetProtein": number,
-        "targetCarbs": number, "targetFat": number
+        "targetCalories": number,
+        "targetProtein": number,
+        "targetCarbs": number,
+        "targetFat": number
       }
     `;
+
     try {
       const result = await generativeModel.generateContent(prompt);
       let jsonString = result.response.candidates?.[0]
@@ -326,13 +359,18 @@ export const getMealFromText = functions.https.onCall(async (request) => {
       "invalid-argument", "Input text is required.");
   }
 
+  // FIX: Changed the keys in the prompt to match the Dart Meal model
   const prompt = `
-      You are a nutrition parser. Analyze the text and extract meal info
-      into a single, valid JSON object.
+      You are an expert nutrition parser. Analyze the user's text and
+      extract detailed meal information. Return a single, valid JSON object.
       JSON STRUCTURE:
       {
-        "mealName": "...", "totalProtein": 0.0, "totalCarbs": 0.0,
-        "totalFat": 0.0, "totalCalories": 0.0, "foods": [
+        "mealName": "...",
+        "protein": 0.0,
+        "carbs": 0.0,
+        "fat": 0.0,
+        "calories": 0.0,
+        "foods": [
           {"name": "...", "protein": 0.0, "carbs": 0.0, "fat": 0.0,
           "calories": 0.0}
         ]
@@ -408,7 +446,6 @@ export const getWorkoutInsights = functions.https.onCall(async (request) => {
   }
 });
 
-// THIS IS THE NEW FUNCTION THAT WAS MISSING
 export const generateAiWorkoutProgram = functions.https.onCall(
   async (request) => {
     if (!request.auth) {
@@ -428,7 +465,7 @@ export const generateAiWorkoutProgram = functions.https.onCall(
       **TASK:**
       1. Analyze the user's request for days, split, and goals.
       2. Create a complete workout program based on the request and equipment.
-      3. For each day, provide a name (e.g., "Chest & Triceps Push Day").
+      3. For each day, provide a concise (e.g., "Chest & Triceps Push Day").
       4. For each exercise, provide a target (e.g., "3x 8-12 reps").
       **IMPORTANT:** Respond with ONLY a valid JSON object.
       The JSON structure must be:
@@ -444,8 +481,12 @@ export const generateAiWorkoutProgram = functions.https.onCall(
 
     try {
       const result = await generativeModel.generateContent(finalPrompt);
-      const jsonString = result.response.candidates?.[0]
+      // FIX: Added the sanitization logic to remove markdown
+      let jsonString = result.response.candidates?.[0]
         ?.content?.parts?.[0]?.text ?? "{}";
+      if (jsonString.startsWith("```json")) {
+        jsonString = jsonString.substring(7, jsonString.length - 3);
+      }
 
       const programData = JSON.parse(jsonString);
       if (!programData.name || !programData.days) {

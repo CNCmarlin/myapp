@@ -1,4 +1,3 @@
-
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:myapp/models/ai_workout_update.dart';
 import 'package:myapp/models/chat_message.dart';
@@ -52,9 +51,10 @@ class AIService {
     try {
       final callable = _functions.httpsCallable('getMealFromText');
       final response = await callable.call({'inputText': inputText});
-      final data = response.data as Map<String, dynamic>;
-      // FIX: Cast the map to the specific type expected by Meal.fromMap.
-      return Meal.fromMap(Map<String, Object?>.from(data));
+      
+      // FIX: Use our new, robust constructor to safely parse the nested data.
+      return Meal.fromCloudFunction(response.data as Map<String, dynamic>);
+
     } on FirebaseFunctionsException catch (e) {
       print('Cloud Function Error (getMealFromText): ${e.message}');
       return null;
@@ -70,7 +70,6 @@ class AIService {
     UserProfile userProfile,
   ) async {
     try {
-      // Convert the map to a JSON-compatible format.
       final Map<String, dynamic> serializableLastSession = lastSessionData.map(
         (key, value) => MapEntry(key, value?.toMap()),
       );

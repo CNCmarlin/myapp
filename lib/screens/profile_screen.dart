@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:myapp/models/user_profile.dart';
-//import 'package:myapp/models/workout_data.dart';
 import 'package:provider/provider.dart';
-//import 'package.provider/provider.dart';
 import 'package:myapp/providers/profile_provider.dart';
 import 'package:myapp/providers/user_profile_provider.dart';
 
@@ -29,6 +27,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               duration: const Duration(milliseconds: 200),
               child: _activeView == ActiveProfileView.goals
                   ? const _GoalsSettingsView(key: ValueKey('goals'))
+                  // FIX: Ensure the BodyStatsView is also scrollable to prevent overflows
                   : const _BodyStatsView(key: ValueKey('stats')),
             ),
           ),
@@ -59,7 +58,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 }
 
-// --- Sub-View for Goals & Settings ---
 class _GoalsSettingsView extends StatefulWidget {
   const _GoalsSettingsView({super.key});
   @override
@@ -67,7 +65,6 @@ class _GoalsSettingsView extends StatefulWidget {
 }
 
 class _GoalsSettingsViewState extends State<_GoalsSettingsView> {
-  // Local state variables to hold UI selections
   String? _selectedActivityLevel;
   String? _selectedPrimaryGoal;
   String? _selectedProgramId;
@@ -75,36 +72,29 @@ class _GoalsSettingsViewState extends State<_GoalsSettingsView> {
   final _targetProteinController = TextEditingController();
   final _targetCarbsController = TextEditingController();
   final _targetFatController = TextEditingController();
-  bool _isInit = false;
-  final bool _isAiLoading = false; // State for AI suggestion button
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      final userProfile = context.read<UserProfileProvider>().userProfile;
+      if (userProfile != null) {
+        _updateLocalState(userProfile);
+      }
       context.read<ProfileProvider>().loadAvailablePrograms();
     });
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final userProfile = context.watch<UserProfileProvider>().userProfile;
-    if (userProfile != null && !_isInit) {
-      // Populate state from the provider when the widget first loads
+  void _updateLocalState(UserProfile userProfile) {
+    setState(() {
       _selectedActivityLevel = userProfile.activityLevel;
       _selectedPrimaryGoal = userProfile.primaryGoal;
       _selectedProgramId = userProfile.activeProgramId;
-      _targetCaloriesController.text =
-          userProfile.targetCalories?.toStringAsFixed(0) ?? '';
-      _targetProteinController.text =
-          userProfile.targetProtein?.toStringAsFixed(0) ?? '';
-      _targetCarbsController.text =
-          userProfile.targetCarbs?.toStringAsFixed(0) ?? '';
-      _targetFatController.text =
-          userProfile.targetFat?.toStringAsFixed(0) ?? '';
-      _isInit = true;
-    }
+      _targetCaloriesController.text = userProfile.targetCalories?.toStringAsFixed(0) ?? '';
+      _targetProteinController.text = userProfile.targetProtein?.toStringAsFixed(0) ?? '';
+      _targetCarbsController.text = userProfile.targetCarbs?.toStringAsFixed(0) ?? '';
+      _targetFatController.text = userProfile.targetFat?.toStringAsFixed(0) ?? '';
+    });
   }
 
   @override
@@ -125,14 +115,19 @@ class _GoalsSettingsViewState extends State<_GoalsSettingsView> {
       targetProtein: _targetProteinController.text,
       targetCarbs: _targetCarbsController.text,
       targetFat: _targetFatController.text,
-    ).then((_) => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Goals saved successfully!'))));
+    ).then((_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Goals saved successfully!')));
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    // Watch both providers
+    // FIX: Watch the provider to trigger rebuilds when the profile is updated
     final profileProvider = context.watch<ProfileProvider>();
     final userProfile = context.watch<UserProfileProvider>().userProfile;
+
     if (userProfile == null) return const Center(child: CircularProgressIndicator());
 
     return ListView(
@@ -150,15 +145,19 @@ class _GoalsSettingsViewState extends State<_GoalsSettingsView> {
                 const SizedBox(height: 16),
                 DropdownButtonFormField<String>(value: _selectedActivityLevel, decoration: const InputDecoration(labelText: 'Activity Level'), items: ['Sedentary', 'Lightly Active', 'Moderately Active', 'Very Active', 'Extra Active'].map((String value) => DropdownMenuItem<String>(value: value, child: Text(value))).toList(), onChanged: (String? newValue) => setState(() => _selectedActivityLevel = newValue)),
                 const SizedBox(height: 16),
-                // This dropdown now shows a loading indicator
                 profileProvider.isLoadingPrograms
-                  ? const Center(child: CircularProgressIndicator())
-                  : DropdownButtonFormField<String>(
-                      decoration: const InputDecoration(labelText: 'Active Workout Program'),
-                      value: _selectedProgramId,
-                      items: profileProvider.availablePrograms.map((program) => DropdownMenuItem<String>(value: program.id, child: Text(program.name))).toList(),
-                      onChanged: (String? newValue) => setState(() => _selectedProgramId = newValue)
-                    ),
+                    ? const Center(child: CircularProgressIndicator())
+                    : DropdownButtonFormField<String>(
+                        decoration: const InputDecoration(labelText: 'Active Workout Program'),
+                        // FIX: The value is now read directly from the provider on each build
+                        value: userProfile.activeProgramId,
+                        isExpanded: true,
+                        items: profileProvider.availablePrograms.map((program) => DropdownMenuItem<String>(
+                          value: program.id,
+                          child: Text(program.name, overflow: TextOverflow.ellipsis),
+                        )).toList(),
+                        onChanged: (String? newValue) => setState(() => _selectedProgramId = newValue)
+                      ),
               ],
             ),
           ),
@@ -197,7 +196,6 @@ class _GoalsSettingsViewState extends State<_GoalsSettingsView> {
   }
 }
 
-// --- Sub-View for Body Stats ---
 class _BodyStatsView extends StatefulWidget {
   const _BodyStatsView({super.key});
   @override

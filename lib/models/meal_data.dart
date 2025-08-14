@@ -1,7 +1,6 @@
 import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-// NEW: A model for individual food items within a meal.
 class FoodItem {
   String name;
   double protein;
@@ -40,7 +39,7 @@ class FoodItem {
 
 class Meal {
   String mealName;
-  List<FoodItem> foods; // CHANGED: from String to List<FoodItem>
+  List<FoodItem> foods;
   double protein;
   double carbs;
   double fat;
@@ -56,21 +55,32 @@ class Meal {
     required this.calories,
     this.aiInsight,
   });
+  
+  factory Meal.fromCloudFunction(Map<String, dynamic> data) {
+    dynamic deepCast(dynamic value) {
+      if (value is Map) {
+        return value.map((key, val) => MapEntry(key.toString(), deepCast(val)));
+      }
+      if (value is List) {
+        return value.map((e) => deepCast(e)).toList();
+      }
+      return value;
+    }
+    
+    final safeData = deepCast(data);
+    return Meal.fromMap(safeData as Map<String, dynamic>);
+  }
 
   factory Meal.fromMap(Map<String, dynamic> map) {
     List<FoodItem> foodItems = [];
     
-    // THIS IS THE FIX: Check the type of the 'foods' field
     if (map['foods'] is List) {
-      // If it's a List, parse it the new way
       foodItems = (map['foods'] as List<dynamic>)
           .map((item) => FoodItem.fromMap(item as Map<String, dynamic>))
           .toList();
     } else if (map['foods'] is String) {
-      // If it's a String, we know it's old data.
-      // We'll create a single FoodItem to hold the old data.
       foodItems.add(FoodItem(
-        name: map['foods'], // The old string becomes the item name
+        name: map['foods'],
         protein: (map['protein'] as num?)?.toDouble() ?? 0.0,
         carbs: (map['carbs'] as num?)?.toDouble() ?? 0.0,
         fat: (map['fat'] as num?)?.toDouble() ?? 0.0,
@@ -79,22 +89,20 @@ class Meal {
     }
 
     return Meal(
-      mealName: map['mealName'],
-      foods: foodItems, // Use the parsed or migrated list
-      protein: (map['protein'] as num).toDouble(),
-      carbs: (map['carbs'] as num).toDouble(),
-      fat: (map['fat'] as num).toDouble(),
-      calories: (map['calories'] as num).toDouble(),
+      mealName: map['mealName'] ?? 'Unnamed Meal',
+      foods: foodItems,
+      // FIX: Made these casts null-safe to prevent crashes
+      protein: (map['protein'] as num?)?.toDouble() ?? 0.0,
+      carbs: (map['carbs'] as num?)?.toDouble() ?? 0.0,
+      fat: (map['fat'] as num?)?.toDouble() ?? 0.0,
+      calories: (map['calories'] as num?)?.toDouble() ?? 0.0,
       aiInsight: map['aiInsight'],
     );
   }
 
-  // FIX: Added the missing toMap() method.
-  // This converts the Meal object into a Map so it can be stored in Firestore.
   Map<String, dynamic> toMap() {
     return {
       'mealName': mealName,
-      // We also need to convert each FoodItem in the list back to a map.
       'foods': foods.map((food) => food.toMap()).toList(),
       'protein': protein,
       'carbs': carbs,
@@ -125,8 +133,6 @@ class NutritionLog {
     required this.totalMacros,
     this.hungerRating,
   });
-
-  // In lib/models/meal_data.dart, inside the NutritionLog class
 
   factory NutritionLog.empty({DateTime? date}) {
     final newDate = date ?? DateTime.now();

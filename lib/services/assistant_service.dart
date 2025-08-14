@@ -26,7 +26,9 @@ class AssistantService {
         'equipmentInfo': equipmentInfo,
       });
 
-      return WorkoutProgram.fromMap(Map<String, dynamic>.from(result.data));
+      // FIX: Use our new, robust constructor to safely parse the nested data.
+      return WorkoutProgram.fromCloudFunction(result.data as Map<String, dynamic>);
+      
     } on FirebaseFunctionsException catch (e) {
       print("Cloud Function Error (generateAiWorkoutProgram): ${e.code} ${e.message}");
       return null;

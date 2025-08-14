@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
+//import 'package:myapp/models/user_profile.dart';
 import 'package:myapp/models/workout_data.dart';
 import 'package:myapp/providers/onboarding_provider.dart';
 import 'package:myapp/providers/user_profile_provider.dart';
 import 'package:myapp/services/assistant_service.dart';
 import 'package:myapp/services/auth_service.dart';
 import 'package:myapp/services/nutrition_goal_service.dart';
-import 'package:provider/provider.dart';
 import 'package:myapp/screens/edit_workout_day_screen.dart';
+import 'package:myapp/widgets/macro_indicator.dart';
+import 'package:provider/provider.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -19,15 +21,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
 
-  // FIX: Reordered the pages for a logical data collection flow.
   final List<Widget> _pages = [
     const _WelcomePage(),
     const _GoalPage(),
     const _UnitSystemPage(),
     const _BiometricsPage(),
-    const _DietAndActivityPage(), // This now comes BEFORE nutrition goals
-    const _CreateProgramPage(),   // This also comes BEFORE nutrition goals
-    const _NutritionGoalsPage(),  // Now the AI has all the data it needs
+    const _DietAndActivityPage(),
+    const _CreateProgramPage(),
+    const _NutritionGoalsPage(),
     const _SummaryPage(),
   ];
 
@@ -68,7 +69,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     }
 
     final onboardingProvider = context.read<OnboardingProvider>();
-    final finalProfile = onboardingProvider.finalProfile.copyWith(onboardingCompleted: true);
+    final tempProfile = onboardingProvider.finalProfile;
+    
+    final finalProfile = tempProfile.copyWith(
+      onboardingCompleted: true,
+      activeProgramId: tempProfile.activeProgramId, 
+    );
+    
     userProfileProvider.updateUserProfile(userId, finalProfile);
   }
 
@@ -94,6 +101,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
                     child: Row(
                       children: [
+                        // FIX: Show the back button on the summary page as well
                         if (_currentPage > 0)
                           TextButton(
                             onPressed: _previousPage,
@@ -131,21 +139,44 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 }
 
 // --- Page Widgets ---
-// (The individual page widgets remain unchanged from your provided code)
+
 class _WelcomePage extends StatelessWidget {
   const _WelcomePage();
   @override
   Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.all(24.0),
+    final textTheme = Theme.of(context).textTheme;
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24.0),
       child: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text('Welcome!', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
-            SizedBox(height: 16),
+            Text('Welcome to Simply Fit!', style: textTheme.headlineLarge?.copyWith(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 24),
             Text(
-              'Let\'s get your profile set up to personalize your fitness journey.',
+              'Simplifying your fitness and nutrition with personalized AI coaching, so you can focus on what matters: your results.',
+              textAlign: TextAlign.center,
+              style: textTheme.titleMedium,
+            ),
+            const SizedBox(height: 32),
+            const _FeatureHighlight(
+              icon: Icons.auto_awesome,
+              title: 'AI-Powered Coaching',
+              subtitle: 'Get personalized workout and nutrition plans.',
+            ),
+            const _FeatureHighlight(
+              icon: Icons.track_changes,
+              title: 'Effortless Tracking',
+              subtitle: 'Log meals and workouts with simple text commands.',
+            ),
+            const _FeatureHighlight(
+              icon: Icons.insights,
+              title: 'Actionable Insights',
+              subtitle: 'Understand your progress with weekly summaries.',
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'Let\'s get your profile set up to personalize your journey.',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 16),
             ),
@@ -156,12 +187,33 @@ class _WelcomePage extends StatelessWidget {
   }
 }
 
+class _FeatureHighlight extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  const _FeatureHighlight({required this.icon, required this.title, required this.subtitle});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: ListTile(
+        leading: Icon(icon, color: Theme.of(context).colorScheme.primary, size: 32),
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+        subtitle: Text(subtitle),
+      ),
+    );
+  }
+}
+
+
 class _GoalPage extends StatelessWidget {
   const _GoalPage();
   @override
   Widget build(BuildContext context) {
     return Consumer<OnboardingProvider>(
       builder: (context, provider, child) {
+        final goal = provider.finalProfile.primaryGoal;
         return Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
@@ -173,31 +225,28 @@ class _GoalPage extends StatelessWidget {
                 title: const Text('Lose Weight'),
                 leading: Radio<String>(
                   value: 'Lose Weight',
-                  groupValue: provider.finalProfile.primaryGoal,
-                  onChanged: (value) {
-                    if (value != null) provider.updatePrimaryGoal(value);
-                  },
+                  groupValue: goal,
+                  onChanged: (value) => provider.updatePrimaryGoal(value!),
                 ),
+                onTap: () => provider.updatePrimaryGoal('Lose Weight'),
               ),
               ListTile(
                 title: const Text('Gain Muscle'),
                 leading: Radio<String>(
                   value: 'Gain Muscle',
-                  groupValue: provider.finalProfile.primaryGoal,
-                  onChanged: (value) {
-                    if (value != null) provider.updatePrimaryGoal(value);
-                  },
+                  groupValue: goal,
+                  onChanged: (value) => provider.updatePrimaryGoal(value!),
                 ),
+                onTap: () => provider.updatePrimaryGoal('Gain Muscle'),
               ),
               ListTile(
                 title: const Text('Maintain Weight'),
                 leading: Radio<String>(
                   value: 'Maintain Weight',
-                  groupValue: provider.finalProfile.primaryGoal,
-                  onChanged: (value) {
-                    if (value != null) provider.updatePrimaryGoal(value);
-                  },
+                  groupValue: goal,
+                  onChanged: (value) => provider.updatePrimaryGoal(value!),
                 ),
+                onTap: () => provider.updatePrimaryGoal('Maintain Weight'),
               ),
             ],
           ),
@@ -393,19 +442,265 @@ class _DietAndActivityPage extends StatelessWidget {
             ],
             const SizedBox(height: 24),
             const Text('Outside of exercise, how active is your daily life?'),
-            ...['Sedentary', 'Lightly Active', 'Moderately Active', 'Very Active'].map((level) => ListTile(
-              title: Text(level),
-              leading: Radio<String>(
-                value: level,
-                groupValue: provider.finalProfile.activityLevel,
-                onChanged: (value) {
-                  if (value != null) provider.updateActivityLevel(value);
-                },
-              ),
-            )),
+            ...['Sedentary', 'Lightly Active', 'Moderately Active', 'Very Active'].map((level) {
+                return ListTile(
+                  title: Text(level),
+                  leading: Radio<String>(
+                    value: level,
+                    groupValue: provider.finalProfile.activityLevel,
+                    onChanged: (value) => provider.updateActivityLevel(value!),
+                  ),
+                  onTap: () => provider.updateActivityLevel(level),
+                );
+              }),
           ],
         );
       },
+    );
+  }
+}
+
+class _CreateProgramPage extends StatefulWidget {
+  const _CreateProgramPage();
+
+  @override
+  State<_CreateProgramPage> createState() => _CreateProgramPageState();
+}
+
+enum CreationMode { manual, ai }
+
+class _CreateProgramPageState extends State<_CreateProgramPage> {
+  final _textController = TextEditingController();
+  final _assistantService = AssistantService();
+
+  CreationMode _mode = CreationMode.manual;
+  int _numberOfDays = 3;
+  bool _isLoading = false;
+  String? _aiQuestion;
+  String? _selectedEquipment;
+  WorkoutProgram? _aiGeneratedProgram;
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleManualCreation() async {
+    final programName = _textController.text.trim();
+    if (programName.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a name for your program.')),
+      );
+      return;
+    }
+
+    final workoutDays = _aiGeneratedProgram?.days ?? 
+      List.generate(_numberOfDays, (index) => 'Day ${index + 1}')
+          .map((dayName) => WorkoutDay(dayName: dayName, exercises: []))
+          .toList();
+
+    final newProgram = _aiGeneratedProgram?.copyWith(
+          name: programName,
+          days: workoutDays,
+        ) ??
+        WorkoutProgram(
+          id: '',
+          name: programName,
+          days: workoutDays,
+        );
+    
+    if (mounted) {
+      final result = await Navigator.push<WorkoutProgram>(
+        context,
+        MaterialPageRoute(
+          builder: (context) => EditWorkoutDayScreen(
+            program: newProgram,
+          ),
+        ),
+      );
+
+      if (result != null && mounted) {
+         Provider.of<OnboardingProvider>(context, listen: false)
+            .updateActiveProgramId(result.id);
+      }
+    }
+  }
+  
+  Future<void> _submitAIPrompt() async {
+    final prompt = _textController.text.trim();
+    if (prompt.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please describe the program you want.')),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      if (_selectedEquipment == null) {
+        setState(() {
+          _aiQuestion = "What kind of equipment do you have access to?";
+          _isLoading = false;
+        });
+        return;
+      }
+      
+      final program = await _assistantService.generateProgram(
+        prompt: prompt,
+        equipmentInfo: _selectedEquipment!,
+      );
+
+      if (mounted && program != null) {
+        final editedProgram = await Navigator.push<WorkoutProgram>(
+          context,
+          MaterialPageRoute(
+            builder: (context) => EditWorkoutDayScreen(
+              program: program,
+            ),
+          ),
+        );
+
+        setState(() {
+          if (editedProgram != null) {
+            _aiGeneratedProgram = editedProgram;
+             Provider.of<OnboardingProvider>(context, listen: false)
+                .updateActiveProgramId(editedProgram.id);
+          } else {
+            _aiGeneratedProgram = program;
+          }
+          _mode = CreationMode.manual;
+          _textController.text = _aiGeneratedProgram!.name;
+          _numberOfDays = _aiGeneratedProgram!.days.length;
+          _aiQuestion = null;
+          _selectedEquipment = null;
+        });
+      } else if (mounted) {
+         ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('The AI failed to generate a program. Please try again.')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("An error occurred: $e")),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final bool hasAiProgramToEdit = _aiGeneratedProgram != null;
+
+    return ListView(
+      padding: const EdgeInsets.all(16.0),
+      children: [
+        Text(
+          'Create Your First Program',
+          style: textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 24),
+        
+        SegmentedButton<CreationMode>(
+          segments: [
+            ButtonSegment(
+              value: CreationMode.manual,
+              label: Text(hasAiProgramToEdit ? 'Manual / Edit AI' : 'Create Manually')
+            ),
+            const ButtonSegment(value: CreationMode.ai, label: Text('Ask AI')),
+          ],
+          selected: {_mode},
+          onSelectionChanged: (Set<CreationMode> newSelection) {
+            setState(() => _mode = newSelection.first);
+          },
+        ),
+        
+        if (_mode == CreationMode.ai)
+          const Padding(
+            padding: EdgeInsets.only(top: 8.0),
+            child: Text(
+              "Please be patient, AI generation can take up to 30 seconds.",
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+          ),
+        const SizedBox(height: 24),
+
+        TextFormField(
+          controller: _textController,
+          decoration: InputDecoration(
+            labelText: _mode == CreationMode.manual
+                ? 'Program Name (e.g., "My Lifting Plan")'
+                : 'Describe the program you want...',
+            hintText: _mode == CreationMode.ai
+                ? 'e.g., "A 4 day push pull full body strength program"'
+                : null,
+            border: const OutlineInputBorder(),
+          ),
+        ),
+        const SizedBox(height: 24),
+
+        if (_mode == CreationMode.manual) ...[
+          Text('How many days per week?', style: textTheme.titleMedium),
+          Slider(
+            value: _numberOfDays.toDouble(),
+            min: 1,
+            max: 7,
+            divisions: 6,
+            label: _numberOfDays.toString(),
+            onChanged: hasAiProgramToEdit ? null : (value) {
+              setState(() {
+                _numberOfDays = value.toInt();
+              });
+            },
+          ),
+        ],
+
+        if (_mode == CreationMode.ai && _aiQuestion != null) ...[
+            Text(_aiQuestion!, style: textTheme.titleMedium),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8.0,
+              children: ['Public Gym', 'Home Gym', 'Bodyweight Only'].map((equipment) {
+                return ChoiceChip(
+                  label: Text(equipment),
+                  selected: _selectedEquipment == equipment,
+                  onSelected: (bool selected) {
+                    setState(() {
+                      _selectedEquipment = selected ? equipment : null;
+                    });
+                  },
+                );
+              }).toList(),
+            ),
+        ],
+
+        const SizedBox(height: 32),
+        
+        if (_isLoading)
+          const Center(child: CircularProgressIndicator())
+        else
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              minimumSize: const Size.fromHeight(50),
+            ),
+            onPressed: _mode == CreationMode.manual ? _handleManualCreation : _submitAIPrompt,
+            icon: Icon(_mode == CreationMode.manual ? Icons.edit_note : Icons.auto_awesome),
+            label: Text(
+              _mode == CreationMode.ai 
+                ? (_aiQuestion != null ? 'Generate Program' : 'Ask AI to Design')
+                : (hasAiProgramToEdit ? 'Edit & Confirm Program' : 'Design Program')
+            ),
+          ),
+      ],
     );
   }
 }
@@ -485,6 +780,14 @@ class _NutritionGoalsPageState extends State<_NutritionGoalsPage> {
               : const Icon(Icons.auto_awesome),
           label: const Text('Ask AI for Suggestions'),
         ),
+        const Padding(
+          padding: EdgeInsets.only(top: 8.0),
+          child: Text(
+            "Please be patient, AI suggestions can take up to 30 seconds.",
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 12, color: Colors.grey),
+          ),
+        ),
         const SizedBox(height: 24),
         TextField(
           controller: _caloriesController,
@@ -518,268 +821,121 @@ class _NutritionGoalsPageState extends State<_NutritionGoalsPage> {
   }
 }
 
-class _CreateProgramPage extends StatefulWidget {
-  const _CreateProgramPage();
-
-  @override
-  State<_CreateProgramPage> createState() => _CreateProgramPageState();
-}
-
-enum CreationMode { manual, ai }
-
-class _CreateProgramPageState extends State<_CreateProgramPage> {
-  final _textController = TextEditingController();
-  final _assistantService = AssistantService();
-
-  CreationMode _mode = CreationMode.manual;
-  final List<String> _allDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  final Set<String> _selectedDays = {'Mon', 'Wed', 'Fri'};
-  bool _isLoading = false;
-
-  String? _aiQuestion;
-  String? _selectedEquipment;
-
-  @override
-  void dispose() {
-    _textController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _createManualProgram() async {
-    final programName = _textController.text.trim();
-    if (programName.isEmpty || _selectedDays.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a name and select at least one day.')),
-      );
-      return;
-    }
-
-    final workoutDays = _selectedDays.map((dayName) {
-      return WorkoutDay(dayName: dayName, exercises: []);
-    }).toList();
-
-    final newProgram = WorkoutProgram(
-      id: '',
-      name: programName,
-      days: workoutDays,
-    );
-    
-    if (mounted) {
-      await Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => EditWorkoutDayScreen(
-            program: newProgram,
-          ),
-        ),
-      );
-    }
-  }
-  
-  Future<void> _submitAIPrompt() async {
-    final prompt = _textController.text.trim();
-    if (prompt.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please describe the program you want.')),
-      );
-      return;
-    }
-
-    setState(() => _isLoading = true);
-
-    try {
-      if (_selectedEquipment == null) {
-        setState(() {
-          _aiQuestion = "What kind of equipment do you have access to?";
-          _isLoading = false;
-        });
-        return;
-      }
-      
-      final program = await _assistantService.generateProgram(
-        prompt: prompt,
-        equipmentInfo: _selectedEquipment!,
-      );
-
-      if (mounted && program != null) {
-        await Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => EditWorkoutDayScreen(
-              program: program,
-            ),
-          ),
-        );
-        setState(() {
-          _textController.clear();
-          _aiQuestion = null;
-          _selectedEquipment = null;
-        });
-      } else if (mounted) {
-         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('The AI failed to generate a program. Please try again.')),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("An error occurred: $e")),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
-    return ListView(
-      padding: const EdgeInsets.all(16.0),
-      children: [
-        Text(
-          'Create Your First Program',
-          style: textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 24),
-        
-        SegmentedButton<CreationMode>(
-          segments: const [
-            ButtonSegment(value: CreationMode.manual, label: Text('Create Manually')),
-            ButtonSegment(value: CreationMode.ai, label: Text('Ask AI')),
-          ],
-          selected: {_mode},
-          onSelectionChanged: (Set<CreationMode> newSelection) {
-            setState(() => _mode = newSelection.first);
-          },
-        ),
-        const SizedBox(height: 24),
-
-        TextFormField(
-          controller: _textController,
-          decoration: InputDecoration(
-            labelText: _mode == CreationMode.manual
-                ? 'Program Name (e.g., "My Lifting Plan")'
-                : 'Describe the program you want...',
-            hintText: _mode == CreationMode.ai
-                ? 'e.g., "A 4 day push pull full body strength program"'
-                : null,
-            border: const OutlineInputBorder(),
-          ),
-        ),
-        const SizedBox(height: 24),
-
-        if (_mode == CreationMode.manual) ...[
-          Text('Select Workout Days', style: textTheme.titleMedium),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8.0,
-            children: _allDays.map((day) {
-              return FilterChip(
-                label: Text(day),
-                selected: _selectedDays.contains(day),
-                onSelected: (bool selected) {
-                  setState(() {
-                    if (selected) {
-                      _selectedDays.add(day);
-                    } else {
-                      _selectedDays.remove(day);
-                    }
-                  });
-                },
-              );
-            }).toList(),
-          ),
-        ],
-
-        if (_mode == CreationMode.ai && _aiQuestion != null) ...[
-            Text(_aiQuestion!, style: textTheme.titleMedium),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8.0,
-              children: ['Public Gym', 'Home Gym', 'Bodyweight Only'].map((equipment) {
-                return ChoiceChip(
-                  label: Text(equipment),
-                  selected: _selectedEquipment == equipment,
-                  onSelected: (bool selected) {
-                    setState(() {
-                      _selectedEquipment = selected ? equipment : null;
-                    });
-                  },
-                );
-              }).toList(),
-            ),
-        ],
-
-        const SizedBox(height: 32),
-        
-        if (_isLoading)
-          const Center(child: CircularProgressIndicator())
-        else
-          ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-              minimumSize: const Size.fromHeight(50),
-            ),
-            onPressed: _mode == CreationMode.manual ? _createManualProgram : _submitAIPrompt,
-            icon: Icon(_mode == CreationMode.manual ? Icons.add : Icons.auto_awesome),
-            label: Text(_mode == CreationMode.ai && _aiQuestion != null ? 'Generate Program' : 'Design Program'),
-          ),
-      ],
-    );
-  }
-}
-
 class _SummaryPage extends StatelessWidget {
   const _SummaryPage();
   @override
   Widget build(BuildContext context) {
     final profile = context.watch<OnboardingProvider>().finalProfile;
-    final bool isImperial = profile.unitSystem == 'imperial';
-    final goal = profile.primaryGoal ?? 'Not Set';
-    final sex = profile.biologicalSex ?? 'Not Set';
-    final weightValue = profile.weight?['value'] as double?;
-    final weightDisplay = weightValue != null ? '${weightValue.toStringAsFixed(1)} ${profile.weight?['unit']}' : 'Not Set';
-    final heightCm = profile.height?['value'] as double?;
-    String heightDisplay = 'Not Set';
-    if (heightCm != null && heightCm > 0) {
-      if (isImperial) {
-        final totalInches = heightCm * 0.393701;
-        final feet = totalInches ~/ 12;
-        final inches = (totalInches % 12).toStringAsFixed(1);
-        heightDisplay = '$feet ft $inches in';
-      } else {
-        heightDisplay = '${heightCm.toStringAsFixed(1)} cm';
-      }
-    }
+    final textTheme = Theme.of(context).textTheme;
 
-    return SingleChildScrollView(
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Ready to go?', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 24),
-            Text('Goal: $goal', style: const TextStyle(fontSize: 18)),
-            const SizedBox(height: 8),
-            Text('Sex: $sex', style: const TextStyle(fontSize: 18)),
-            const SizedBox(height: 8),
-            Text('Weight: $weightDisplay', style: const TextStyle(fontSize: 18)),
-            const SizedBox(height: 8),
-            Text('Height: $heightDisplay', style: const TextStyle(fontSize: 18)),
-            const SizedBox(height: 32),
-            const Text(
-              'You can always change these details later in your profile.',
-              textAlign: TextAlign.center,
+    return ListView(
+      padding: const EdgeInsets.all(16.0),
+      children: [
+        Text('Onboarding Complete!',
+            style: textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center),
+        const SizedBox(height: 8),
+        Text('Here is a summary of your new profile. You can change this information at any time.',
+            textAlign: TextAlign.center, style: textTheme.bodyMedium),
+        const SizedBox(height: 24),
+
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Vitals & Goal', style: textTheme.titleLarge),
+                const Divider(),
+                _SummaryTile(
+                  icon: Icons.flag_outlined,
+                  title: 'Primary Goal',
+                  value: profile.primaryGoal ?? 'Not Set',
+                ),
+                _SummaryTile(
+                  icon: Icons.person_outline,
+                  title: 'Biological Sex',
+                  value: profile.biologicalSex ?? 'Not Set',
+                ),
+                _SummaryTile(
+                  icon: Icons.monitor_weight_outlined,
+                  title: 'Weight',
+                  value: profile.weight != null
+                      ? '${(profile.weight!['value'] as num).toStringAsFixed(1)} ${profile.weight!['unit']}'
+                      : 'Not Set',
+                ),
+              ],
             ),
-          ],
+          ),
         ),
-      ),
+        const SizedBox(height: 16),
+        
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Activity Plan', style: textTheme.titleLarge),
+                const Divider(),
+                 _SummaryTile(
+                  icon: Icons.directions_run,
+                  title: 'Weekly Exercise',
+                  value: '${profile.exerciseDaysPerWeek} days/week',
+                ),
+                _SummaryTile(
+                  icon: Icons.work_outline,
+                  title: 'Daily Activity',
+                  value: profile.activityLevel ?? 'Not Set',
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Nutrition Plan', style: textTheme.titleLarge),
+                const SizedBox(height: 8),
+                Text('Low-Carb Preference: ${profile.prefersLowCarb ? "Yes" : "No"}', style: textTheme.bodyMedium),
+                const Divider(),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    MacroIndicator(label: 'Calories', value: profile.targetCalories ?? 0, target: profile.targetCalories ?? 2000, color: Colors.blue, showTarget: true),
+                    MacroIndicator(label: 'Protein', value: profile.targetProtein ?? 0, target: profile.targetProtein ?? 150, color: Colors.red, unit: 'g', showTarget: true),
+                    MacroIndicator(label: 'Carbs', value: profile.targetCarbs ?? 0, target: profile.targetCarbs ?? 200, color: Colors.orange, unit: 'g', showTarget: true),
+                    MacroIndicator(label: 'Fat', value: profile.targetFat ?? 0, target: profile.targetFat ?? 60, color: Colors.purple, unit: 'g', showTarget: true),
+                  ],
+                )
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   } 
+}
+
+class _SummaryTile extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String value;
+
+  const _SummaryTile({required this.icon, required this.title, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: Icon(icon, color: Theme.of(context).colorScheme.primary),
+      title: Text(title),
+      trailing: Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
+    );
+  }
 }

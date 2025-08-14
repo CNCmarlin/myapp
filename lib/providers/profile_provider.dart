@@ -21,14 +21,10 @@ class ProfileProvider with ChangeNotifier {
     required UserProfileProvider userProfileProvider,
   })  : _authService = authService,
         _firestoreService = firestoreService,
-        _userProfileProvider = userProfileProvider {
-    // The automatic call to loadAvailablePrograms() has been removed.
-    // The provider is now "lazy".
-  }
+        _userProfileProvider = userProfileProvider;
 
   Future<void> loadAvailablePrograms() async {
-    // Prevent re-fetching if we are already loading or already have the data.
-    if (_isLoadingPrograms || _availablePrograms.isNotEmpty) return;
+    if (_isLoadingPrograms && _availablePrograms.isNotEmpty) return;
 
     final userId = _authService.currentUser?.uid;
     if (userId == null) return;
@@ -42,7 +38,18 @@ class ProfileProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // A dedicated method for saving goals and settings
+  // NEW: This is the missing method that the WorkoutScreen needs.
+
+  Future<WorkoutProgram?> getActiveProgramDetails(String? programId) async {
+    // FIX: Add a null check for the programId.
+    if (programId == null) return null;
+    
+    final userId = _authService.currentUser?.uid;
+    if (userId == null) return null;
+
+    return await _firestoreService.getWorkoutProgramById(userId, programId);
+  }
+
   Future<void> saveGoals({
     required String activityLevel,
     required String primaryGoal,
@@ -68,7 +75,6 @@ class ProfileProvider with ChangeNotifier {
     await _userProfileProvider.updateUserProfile(userId, profileToSave);
   }
 
-  // A dedicated method for saving body stats
   Future<void> saveStats({
     required bool isMetric,
     required String biologicalSex,

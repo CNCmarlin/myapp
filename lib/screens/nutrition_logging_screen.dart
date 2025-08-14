@@ -5,8 +5,9 @@ import 'package:myapp/providers/date_provider.dart';
 import 'package:myapp/providers/nutrition_log_provider.dart';
 import 'package:myapp/providers/user_profile_provider.dart';
 import 'package:myapp/services/auth_service.dart';
-// FIX: Import the new shared widget
 import 'package:myapp/widgets/shared_info_card.dart';
+// FIX: Import the new shared macro widget
+import 'package:myapp/widgets/macro_indicator.dart';
 import 'package:provider/provider.dart';
 
 class NutritionLoggingScreen extends StatelessWidget {
@@ -155,7 +156,6 @@ class _NutritionLoggingViewState extends State<_NutritionLoggingView> {
                     delegate: SliverChildBuilderDelegate(
                       (context, index) {
                         final meal = provider.log!.meals[index];
-                        // FIX: Replace the old _MealCard with the new SharedInfoCard
                         return SharedInfoCard(
                           title: meal.mealName,
                           subtitle: '${meal.calories.toStringAsFixed(0)} kcal | P:${meal.protein.toStringAsFixed(0)} C:${meal.carbs.toStringAsFixed(0)} F:${meal.fat.toStringAsFixed(0)}',
@@ -201,7 +201,6 @@ class _NutritionLoggingViewState extends State<_NutritionLoggingView> {
     );
   }
 
-  // FIX: Extracted the expandable content into a helper method for clarity.
   Widget _buildMealDetails(BuildContext context, Meal meal) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -271,24 +270,25 @@ class _DailySummaryCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _MacroIndicator(
+                // FIX: Use the new public MacroIndicator widget
+                MacroIndicator(
                     label: 'Calories',
                     value: currentLog.totalCalories,
                     target: targetCalories,
                     color: Colors.blue),
-                _MacroIndicator(
+                MacroIndicator(
                     label: 'Protein',
                     value: currentLog.totalMacros['protein'] ?? 0,
                     target: targetProtein,
                     color: Colors.red,
                     unit: 'g'),
-                _MacroIndicator(
+                MacroIndicator(
                     label: 'Carbs',
                     value: currentLog.totalMacros['carbs'] ?? 0,
                     target: targetCarbs,
                     color: Colors.orange,
                     unit: 'g'),
-                _MacroIndicator(
+                MacroIndicator(
                     label: 'Fat',
                     value: currentLog.totalMacros['fat'] ?? 0,
                     target: targetFat,
@@ -299,52 +299,6 @@ class _DailySummaryCard extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-// REMOVED: The old _MealCard widget is no longer needed.
-
-class _MacroIndicator extends StatelessWidget {
-  final String label;
-  final double value;
-  final double target;
-  final Color color;
-  final String unit;
-
-  const _MacroIndicator(
-      {required this.label,
-      required this.value,
-      required this.target,
-      required this.color,
-      this.unit = ''});
-
-  @override
-  Widget build(BuildContext context) {
-    final double progress = (target > 0) ? value / target : 0.0;
-    return Column(
-      children: [
-        SizedBox(
-          width: 60,
-          height: 60,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              CircularProgressIndicator(
-                  value: progress.clamp(0.0, 1.0),
-                  strokeWidth: 6,
-                  backgroundColor: color.withOpacity(0.2),
-                  color: color),
-              Center(
-                  child: Text(value.toStringAsFixed(0),
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 16))),
-            ],
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text('$label${unit.isNotEmpty ? ' ($unit)' : ''}'),
-      ],
     );
   }
 }

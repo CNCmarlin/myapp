@@ -22,8 +22,9 @@ class ProfileProvider with ChangeNotifier {
   })  : _authService = authService,
         _firestoreService = firestoreService,
         _userProfileProvider = userProfileProvider;
-
-  Future<void> loadAvailablePrograms() async {
+        
+  // Load available workout programs for the current user.
+  Future<void> loadAvailablePrograms({bool forceRefresh = false}) async {
     if (_isLoadingPrograms && _availablePrograms.isNotEmpty) return;
 
     final userId = _authService.currentUser?.uid;

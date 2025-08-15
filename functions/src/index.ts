@@ -452,28 +452,42 @@ export const generateAiWorkoutProgram = functions.https.onCall(
       throw new functions.https.HttpsError(
         "unauthenticated", "You must be logged in.");
     }
-    const {prompt, equipmentInfo} = request.data;
-    if (!prompt || !equipmentInfo) {
+    const { prompt, equipmentInfo, userProfile } = request.data;
+    if (!prompt || !equipmentInfo || !userProfile) {
       throw new functions.https.HttpsError(
-        "invalid-argument", "A prompt and equipment info are required.");
+        "invalid-argument", "Missing required data.");
     }
 
     const finalPrompt = `
       You are an expert fitness coach creating a personalized workout program.
+
+      **USER PROFILE:**
+      - Goal: ${userProfile.primaryGoal}
+      - Fitness Level: ${userProfile.fitnessProficiency || "Beginner"}
+      - Exercise Days Per Week: ${userProfile.exerciseDaysPerWeek}
+
       **USER'S REQUEST:** "${prompt}"
       **EQUIPMENT AVAILABILITY:** "${equipmentInfo}"
+
       **TASK:**
-      1. Analyze the user's request for days, split, and goals.
-      2. Create a complete workout program based on the request and equipment.
-      3. For each day, provide a concise (e.g., "Chest & Triceps Push Day").
-      4. For each exercise, provide a target (e.g., "3x 8-12 reps").
+      1. Analyze all available data to create a suitable workout program.
+      2. Tailor the exercise selection, volume (sets/reps), and
+         complexity directly to the user's stated **Fitness Level**.
+         - **Beginner:** Focus on compound movements, simple progressions.
+         - **Intermediate:** Introduce more variety and isolation work.
+         - **Advanced:** Assume high work capacity; can include advanced
+           techniques like supersets or dropsets if appropriate.
+      3. Create a concise, motivating name for the program.
+      4. For each day, provide a functional name (e.g., "Full Body A").
+      5. For each exercise, provide a standard target (e.g., "3x 8-12 reps").
+
       **IMPORTANT:** Respond with ONLY a valid JSON object.
       The JSON structure must be:
       {
-        "id": "", "name": "AI Generated Program Name", "days": [
-          {"dayName": "Day 1: Chest & Triceps", "exercises": [
-              {"name": "Bench Press", "programTarget": "4x 8-10 reps",
-               "status": "Incomplete", "sets": []}
+        "id": "", "name": "AI Program Name", "days": [
+          {"dayName": "Day 1: Upper Body", "exercises": [
+            {"name": "Bench Press", "programTarget": "4x 8-10 reps",
+             "status": "Incomplete", "sets": []}
           ]}
         ]
       }
@@ -481,7 +495,6 @@ export const generateAiWorkoutProgram = functions.https.onCall(
 
     try {
       const result = await generativeModel.generateContent(finalPrompt);
-      // FIX: Added the sanitization logic to remove markdown
       let jsonString = result.response.candidates?.[0]
         ?.content?.parts?.[0]?.text ?? "{}";
       if (jsonString.startsWith("```json")) {
@@ -492,7 +505,6 @@ export const generateAiWorkoutProgram = functions.https.onCall(
       if (!programData.name || !programData.days) {
         throw new Error("AI response was not a valid program structure.");
       }
-
       return programData;
     } catch (error) {
       console.error("Error in generateAiWorkoutProgram:", error);

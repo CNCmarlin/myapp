@@ -22,6 +22,7 @@ class UserProfile {
   bool prefersLowCarb;
   double weeklyWeightLossGoal; // In lbs or kg, consistent with unitSystem
   int exerciseDaysPerWeek;
+  String? fitnessProficiency;
 
   UserProfile({
     this.activityLevel,
@@ -42,6 +43,7 @@ class UserProfile {
     this.prefersLowCarb = false,
     this.weeklyWeightLossGoal = 1.0,
     this.exerciseDaysPerWeek = 3,
+     this.fitnessProficiency = 'Beginner',
   });
 
   Map<String, dynamic> toMap() {
@@ -64,6 +66,7 @@ class UserProfile {
       'prefersLowCarb': prefersLowCarb,
       'weeklyWeightLossGoal': weeklyWeightLossGoal,
       'exerciseDaysPerWeek': exerciseDaysPerWeek,
+      'fitnessProficiency': fitnessProficiency,
     };
   }
 
@@ -87,6 +90,8 @@ class UserProfile {
       prefersLowCarb: map['prefersLowCarb'] ?? false,
       weeklyWeightLossGoal: (map['weeklyWeightLossGoal'] as num?)?.toDouble() ?? 1.0,
       exerciseDaysPerWeek: (map['exerciseDaysPerWeek'] as num?)?.toInt() ?? 3,
+            fitnessProficiency: map['fitnessProficiency'] ?? 'Beginner', // NEW FIELD
+
     );
   }
 
@@ -114,6 +119,8 @@ class UserProfile {
     bool? prefersLowCarb,
     double? weeklyWeightLossGoal,
     int? exerciseDaysPerWeek,
+        String? fitnessProficiency, // NEW FIELD
+
   }) {
     return UserProfile(
       activityLevel: activityLevel ?? this.activityLevel,
@@ -134,6 +141,8 @@ class UserProfile {
       prefersLowCarb: prefersLowCarb ?? this.prefersLowCarb,
       weeklyWeightLossGoal: weeklyWeightLossGoal ?? this.weeklyWeightLossGoal,
       exerciseDaysPerWeek: exerciseDaysPerWeek ?? this.exerciseDaysPerWeek,
+            fitnessProficiency: fitnessProficiency ?? this.fitnessProficiency, // NEW FIELD
+
     );
   }
 }

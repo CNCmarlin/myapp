@@ -5,9 +5,8 @@ import 'package:myapp/providers/date_provider.dart';
 import 'package:myapp/providers/nutrition_log_provider.dart';
 import 'package:myapp/providers/user_profile_provider.dart';
 import 'package:myapp/services/auth_service.dart';
-import 'package:myapp/widgets/shared_info_card.dart';
-// FIX: Import the new shared macro widget
 import 'package:myapp/widgets/macro_indicator.dart';
+import 'package:myapp/screens/manual_meal_entry_screen.dart';
 import 'package:provider/provider.dart';
 
 class NutritionLoggingScreen extends StatelessWidget {
@@ -15,15 +14,12 @@ class NutritionLoggingScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final authService = context.read<AuthService>();
-    final userId = authService.currentUser?.uid;
+    final userId = context.read<AuthService>().currentUser?.uid;
     final selectedDate = context.watch<DateProvider>().selectedDate;
     final userProfile = context.watch<UserProfileProvider>().userProfile;
 
     if (userId == null) {
-      return const Scaffold(
-        body: Center(child: Text("Please sign in.")),
-      );
+      return const Center(child: Text("Please sign in."));
     }
 
     return ChangeNotifierProvider(
@@ -37,210 +33,211 @@ class NutritionLoggingScreen extends StatelessWidget {
   }
 }
 
-class _NutritionLoggingView extends StatefulWidget {
+class _NutritionLoggingView extends StatelessWidget {
   const _NutritionLoggingView();
-
-  @override
-  State<_NutritionLoggingView> createState() => _NutritionLoggingViewState();
-}
-
-class _NutritionLoggingViewState extends State<_NutritionLoggingView> {
-  final TextEditingController _aiTextController = TextEditingController();
-
-  @override
-  void dispose() {
-    _aiTextController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _onAiSubmit() async {
-    final provider = context.read<NutritionLogProvider>();
-    if (_aiTextController.text.trim().isEmpty) return;
-    FocusScope.of(context).unfocus();
-
-    final success = await provider.addMealFromText(_aiTextController.text);
-
-    if (mounted) {
-      if (success) {
-        _aiTextController.clear();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Meal added successfully!')),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Sorry, I couldn't understand that.")),
-        );
-      }
-    }
-  }
-
-  void _showSecondaryDataDialog() {
-    final provider = context.read<NutritionLogProvider>();
-    final currentLog = provider.log ?? NutritionLog.empty();
-    
-    final waterController = TextEditingController(
-        text: currentLog.waterIntake > 0
-            ? currentLog.waterIntake.toStringAsFixed(0)
-            : '');
-    bool isLowCarb = currentLog.isLowCarbDay;
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(builder: (context, setDialogState) {
-          return AlertDialog(
-            title: const Text('Log Additional Data'),
-            content: Column(mainAxisSize: MainAxisSize.min, children: [
-              TextField(
-                controller: waterController,
-                decoration:
-                    const InputDecoration(labelText: 'Water Intake (oz)'),
-                keyboardType: TextInputType.number,
-              ),
-              const SizedBox(height: 16),
-              SwitchListTile(
-                title: const Text('Low-Carb Day?'),
-                value: isLowCarb,
-                onChanged: (value) => setDialogState(() => isLowCarb = value),
-              ),
-            ]),
-            actions: [
-              TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Cancel')),
-              ElevatedButton(
-                onPressed: () {
-                  final waterValue = double.tryParse(waterController.text);
-                  provider.updateSecondaryData(
-                    water: waterValue,
-                    isLowCarb: isLowCarb,
-                  );
-                  Navigator.of(context).pop();
-                },
-                child: const Text('Save'),
-              ),
-            ],
-          );
-        });
-      },
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<NutritionLogProvider>();
     final userProfile = context.watch<UserProfileProvider>().userProfile;
 
-    return Scaffold(
-      body: provider.isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : CustomScrollView(
-              slivers: [
-                SliverToBoxAdapter(
-                    child: _DailySummaryCard(
-                        log: provider.log, profile: userProfile)),
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 8.0),
-                    child: Text('Logged Meals',
-                        style: Theme.of(context).textTheme.titleLarge),
-                  ),
+    if (provider.isLoading) {
+      return const Scaffold(
+          body: Center(child: CircularProgressIndicator()));
+    }
+    
+    final mealTypes = ['Breakfast', 'Lunch', 'Dinner', 'Snacks'];
+
+    return DefaultTabController(
+      length: mealTypes.length,
+      child: Scaffold(
+        body: NestedScrollView(
+          headerSliverBuilder: (context, innerBoxIsScrolled) {
+            return <Widget>[
+              SliverAppBar(
+                title: _DailySummaryCard(log: provider.log, profile: userProfile),
+                pinned: true,
+                floating: true,
+                forceElevated: innerBoxIsScrolled,
+                toolbarHeight: 140, // Height for the summary card area
+                bottom: TabBar(
+                  tabs: mealTypes.map((name) => Tab(text: name)).toList(),
                 ),
-                if (provider.log?.meals.isEmpty ?? true)
-                  const SliverFillRemaining(
-                    hasScrollBody: false,
-                    child: Center(child: Text("No meals logged yet.")),
-                  )
-                else
-                  SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final meal = provider.log!.meals[index];
-                        return SharedInfoCard(
-                          title: meal.mealName,
-                          subtitle: '${meal.calories.toStringAsFixed(0)} kcal | P:${meal.protein.toStringAsFixed(0)} C:${meal.carbs.toStringAsFixed(0)} F:${meal.fat.toStringAsFixed(0)}',
-                          expandableContent: _buildMealDetails(context, meal),
-                        );
-                      },
-                      childCount: provider.log!.meals.length,
-                    ),
-                  ),
-              ],
-            ),
-      bottomNavigationBar: Container(
-        color: Theme.of(context).scaffoldBackgroundColor,
-        padding: EdgeInsets.fromLTRB(
-            8, 8, 8, MediaQuery.of(context).viewInsets.bottom + 8),
-        child: Row(
-          children: [
-            Expanded(
-              child: TextField(
-                controller: _aiTextController,
-                decoration: const InputDecoration(
-                  labelText: 'Describe your meal...',
-                  border: OutlineInputBorder(),
-                ),
-                onSubmitted: (_) => _onAiSubmit(),
               ),
-            ),
-            const SizedBox(width: 8),
-            provider.isAnalyzing
-                ? const CircularProgressIndicator()
-                : IconButton(
-                    icon: const Icon(Icons.auto_awesome),
-                    onPressed: _onAiSubmit,
-                  ),
-          ],
+            ];
+          },
+          body: TabBarView(
+            children: mealTypes.map((mealType) {
+              final foodItems = provider.log?.meals[mealType] ?? [];
+              final insight = provider.getInsightForMeal(mealType);
+              return _MealListView(
+                mealType: mealType,
+                foodItems: foodItems,
+                aiInsight: insight,
+              );
+            }).toList(),
+          ),
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showSecondaryDataDialog,
-        tooltip: 'Log Water / Other',
-        child: const Icon(Icons.add),
+        bottomNavigationBar: const _AiEntryBar(),
       ),
     );
   }
+}
 
-  Widget _buildMealDetails(BuildContext context, Meal meal) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        ...meal.foods.map((foodItem) {
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 8.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(foodItem.name,
-                    style: const TextStyle(fontWeight: FontWeight.w600)),
-                Text(
-                  '~${foodItem.calories.toStringAsFixed(0)} kcal | P:${foodItem.protein.toStringAsFixed(0)} C:${foodItem.carbs.toStringAsFixed(0)} F:${foodItem.fat.toStringAsFixed(0)}',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              ],
-            ),
-          );
-        }),
-        if (meal.aiInsight != null && meal.aiInsight!.isNotEmpty) ...[
-          const Divider(height: 24),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(Icons.auto_awesome,
-                  size: 18, color: Colors.deepPurple.shade300),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  meal.aiInsight!,
-                  style: TextStyle(
-                      fontStyle: FontStyle.italic,
-                      color: Colors.deepPurple.shade400),
+class _MealListView extends StatelessWidget {
+  final String mealType;
+  final List<FoodItem> foodItems;
+  final String? aiInsight;
+
+  const _MealListView({required this.mealType, required this.foodItems, this.aiInsight});
+
+  void _addFoodItem(BuildContext context) async {
+    final result = await Navigator.of(context).push<FoodItem>(
+      MaterialPageRoute(builder: (ctx) => const ManualMealEntryScreen()),
+    );
+    if (result != null && context.mounted) {
+      context.read<NutritionLogProvider>().addFoodToMeal(mealType, result);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (foodItems.isEmpty && aiInsight == null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text('No food logged for $mealType'),
+            const SizedBox(height: 8),
+            ElevatedButton(
+              onPressed: () => _addFoodItem(context),
+              child: const Text('Add Food'),
+            )
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.only(top: 8),
+      itemCount: foodItems.length + 2, // +1 for insight, +1 for add button
+      itemBuilder: (context, index) {
+        if (index == 0) {
+          if (aiInsight != null) {
+            return Card(
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              color: Colors.deepPurple.shade50,
+              child: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.auto_awesome, size: 18, color: Colors.deepPurple.shade300),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        aiInsight!,
+                        style: TextStyle(fontStyle: FontStyle.italic, color: Colors.deepPurple.shade700),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ],
+            );
+          }
+          return const SizedBox.shrink();
+        }
+
+        if (index == foodItems.length + 1) {
+          return Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: OutlinedButton.icon(
+              onPressed: () => _addFoodItem(context),
+              icon: const Icon(Icons.add),
+              label: const Text('Add Another Food'),
+            ),
+          );
+        }
+
+        final item = foodItems[index - 1];
+        return ListTile(
+          title: Text(item.name),
+          subtitle: Text(
+              '${item.calories.toStringAsFixed(0)} kcal | P:${item.protein.toStringAsFixed(0)} C:${item.carbs.toStringAsFixed(0)} F:${item.fat.toStringAsFixed(0)}'),
+          trailing: IconButton(
+            icon: const Icon(Icons.delete_outline),
+            onPressed: () {
+              context.read<NutritionLogProvider>().removeFoodFromMeal(mealType, item);
+            },
           ),
-        ]
-      ],
+        );
+      },
+    );
+  }
+}
+
+class _AiEntryBar extends StatefulWidget {
+  const _AiEntryBar();
+  @override
+  State<_AiEntryBar> createState() => _AiEntryBarState();
+}
+
+class _AiEntryBarState extends State<_AiEntryBar> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+  
+  Future<void> _onAiSubmit() async {
+    final provider = context.read<NutritionLogProvider>();
+    final text = _controller.text.trim();
+    if (text.isEmpty) return;
+    
+    FocusScope.of(context).unfocus();
+    final success = await provider.addMealFromText(text);
+
+    if (mounted) {
+      if (success) {
+        _controller.clear();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('AI Meal added successfully!')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Sorry, the AI couldn't understand that.")),
+        );
+      }
+    }
+  }
+  
+  @override
+  Widget build(BuildContext context) {
+    final provider = context.watch<NutritionLogProvider>();
+    return Container(
+      color: Theme.of(context).scaffoldBackgroundColor,
+      padding: EdgeInsets.fromLTRB(8, 8, 8, MediaQuery.of(context).viewInsets.bottom + 8),
+      child: Row(
+        children: [
+          Expanded(child: TextField(
+            controller: _controller,
+            decoration: const InputDecoration(
+              labelText: 'Quick add with AI...',
+              border: OutlineInputBorder(),
+            ),
+            onSubmitted: (_) => _onAiSubmit(),
+          )),
+          const SizedBox(width: 8),
+          provider.isAnalyzing
+              ? const CircularProgressIndicator()
+              : IconButton(
+                  icon: const Icon(Icons.auto_awesome),
+                  onPressed: _onAiSubmit,
+                ),
+        ],
+      ),
     );
   }
 }
@@ -259,46 +256,63 @@ class _DailySummaryCard extends StatelessWidget {
     final targetFat = profile?.targetFat ?? 70.0;
 
     return Card(
-      margin: const EdgeInsets.all(16.0),
+      margin: const EdgeInsets.fromLTRB(16.0, 8.0, 16.0, 0),
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        padding: const EdgeInsets.all(12.0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            Text('Daily Totals', style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                // FIX: Use the new public MacroIndicator widget
-                MacroIndicator(
-                    label: 'Calories',
-                    value: currentLog.totalCalories,
-                    target: targetCalories,
-                    color: Colors.blue),
-                MacroIndicator(
-                    label: 'Protein',
-                    value: currentLog.totalMacros['protein'] ?? 0,
-                    target: targetProtein,
-                    color: Colors.red,
-                    unit: 'g'),
-                MacroIndicator(
-                    label: 'Carbs',
-                    value: currentLog.totalMacros['carbs'] ?? 0,
-                    target: targetCarbs,
-                    color: Colors.orange,
-                    unit: 'g'),
-                MacroIndicator(
-                    label: 'Fat',
-                    value: currentLog.totalMacros['fat'] ?? 0,
-                    target: targetFat,
-                    color: Colors.purple,
-                    unit: 'g'),
-              ],
+            _buildMacroColumn(
+              context,
+              'Calories',
+              currentLog.totalCalories,
+              targetCalories,
+              Colors.blue,
+              unit: '',
+            ),
+            _buildMacroColumn(
+              context,
+              'Protein',
+              currentLog.totalMacros['protein'] ?? 0,
+              targetProtein,
+              Colors.red,
+            ),
+            _buildMacroColumn(
+              context,
+              'Carbs',
+              currentLog.totalMacros['carbs'] ?? 0,
+              targetCarbs,
+              Colors.orange,
+            ),
+            _buildMacroColumn(
+              context,
+              'Fat',
+              currentLog.totalMacros['fat'] ?? 0,
+              targetFat,
+              Colors.purple,
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildMacroColumn(BuildContext context, String label, double value, double target, Color color, {String unit = 'g'}) {
+    return Column(
+      children: [
+        MacroIndicator(
+          label: label,
+          value: value,
+          target: target,
+          color: color,
+          unit: unit,
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Goal: ${target.toStringAsFixed(0)}$unit',
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+      ],
     );
   }
 }

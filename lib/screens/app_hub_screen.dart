@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:myapp/models/workout_data.dart';
-import 'package:myapp/providers/profile_provider.dart';
+//import 'package:myapp/models/workout_data.dart';
+//import 'package:myapp/providers/profile_provider.dart';
 import 'package:myapp/providers/user_profile_provider.dart';
-import 'package:myapp/screens/program_management_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:myapp/screens/dashboard_screen.dart';
@@ -21,16 +20,6 @@ class AppHubScreen extends StatefulWidget {
 
 class _AppHubScreenState extends State<AppHubScreen> {
   int _selectedIndex = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    // FIX: Fetch the programs once when the widget is initialized.
-    // Use addPostFrameCallback to ensure the context is available.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<ProfileProvider>().loadAvailablePrograms();
-    });
-  }
 
   void _onItemTapped(int index) {
     setState(() {
@@ -51,63 +40,27 @@ class _AppHubScreenState extends State<AppHubScreen> {
   }
 
   AppBar _buildAppBar(BuildContext context) {
-    final dateString = DateFormat('yyyy-MM-dd').format(context.watch<DateProvider>().selectedDate);
-    final profileProvider = context.watch<ProfileProvider>();
-    final userProfileProvider = context.watch<UserProfileProvider>();
+  final dateProvider = context.watch<DateProvider>();
+  final userProfileProvider = context.watch<UserProfileProvider>();
+  final dateString = DateFormat('yyyy-MM-dd').format(dateProvider.selectedDate);
 
-    final List<String> titles = <String>[
-      'AI Assistant', 'Workout Log', 'Nutrition Log', 'Profile', 'AI Coach Insights',
-    ];
-    
-    if (_selectedIndex == 1) {
-      return AppBar(
-        title: DropdownButton<String>(
-          value: userProfileProvider.activeProgramId,
-          isExpanded: true,
-          underline: const SizedBox.shrink(),
-          icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
-          dropdownColor: Theme.of(context).appBarTheme.backgroundColor,
-          items: profileProvider.availablePrograms.map((program) {
-            return DropdownMenuItem(
-              value: program.id,
-              child: Text(
-                program.name,
-                style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
-                overflow: TextOverflow.ellipsis,
-              ),
-            );
-          }).toList(),
-          onChanged: (newProgramId) {
-            if (newProgramId != null) {
-              context.read<UserProfileProvider>().updateActiveProgram(newProgramId);
-            }
-          },
-        ),
-        actions: [
-          TextButton(
-            style: TextButton.styleFrom(foregroundColor: Colors.white),
-            child: const Text('Edit Program'),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const ProgramManagementScreen()),
-              );
-            },
-          ),
-        ],
-      );
-    }
-    
-    return AppBar(
-      title: Text('${titles[_selectedIndex]} - $dateString'),
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.calendar_today),
-          onPressed: () => _selectDate(context),
-        ),
-      ],
-    );
-  }
+  final List<String> titles = <String>[
+    'AI Assistant', 'Workout Log', 'Nutrition Log', 'Profile', 'AI Coach Insights',
+  ];
+  
+  // This condition is no longer needed as the WorkoutScreen now has its own AppBar
+  // if (_selectedIndex == 1) { ... }
+
+  return AppBar(
+    title: Text('${titles[_selectedIndex]} - $dateString'),
+    actions: [
+      IconButton(
+        icon: const Icon(Icons.calendar_today),
+        onPressed: () => _selectDate(context),
+      ),
+    ],
+  );
+}
 
   @override
   Widget build(BuildContext context) {

@@ -48,6 +48,11 @@ class OnboardingProvider with ChangeNotifier {
     notifyListeners();
   }
 
+    void updateFitnessProficiency(String proficiency) {
+    _temporaryProfile = _temporaryProfile.copyWith(fitnessProficiency: proficiency);
+    notifyListeners();
+  }
+
   void updateNutritionGoals(
       {double? calories, double? protein, double? carbs, double? fat}) {
     _temporaryProfile = _temporaryProfile.copyWith(

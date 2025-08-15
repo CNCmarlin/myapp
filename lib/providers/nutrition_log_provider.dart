@@ -38,30 +38,55 @@ class NutritionLogProvider extends ChangeNotifier {
 
   Future<void> _saveLog() async {
     if (_log != null) {
-      // No need to notify listeners here, UI is already updated.
-      // This happens in the background.
       await _firestoreService.saveNutritionLog(userId, _log!);
     }
   }
 
+  // --- NEW: Manual Food Entry Methods ---
+  void addFoodToMeal(String mealType, FoodItem foodItem) {
+    if (_log == null) return;
+    if (!_log!.meals.containsKey(mealType)) {
+      _log!.meals[mealType] = [];
+    }
+    _log!.meals[mealType]!.add(foodItem);
+    _log!.recalculateTotals();
+    notifyListeners();
+    _saveLog();
+  }
+
+  void removeFoodFromMeal(String mealType, FoodItem foodItem) {
+    if (_log == null || !_log!.meals.containsKey(mealType)) return;
+    _log!.meals[mealType]!.remove(foodItem);
+    _log!.recalculateTotals();
+    notifyListeners();
+    _saveLog();
+  }
+
+  // REVISED AI Method: Now safely maps meal names
   Future<bool> addMealFromText(String text) async {
     if (text.trim().isEmpty) return false;
-
     _isAnalyzing = true;
     notifyListeners();
 
     final meal = await _aiService.getMealFromText(text);
 
     if (meal != null) {
-      _log?.meals.add(meal);
+      // Safely determine the meal category
+      final mealType = _getMealTypeFromName(meal.mealName);
+
+      // Add individual foods to the correct category
+      for (var food in meal.foods) {
+        addFoodToMeal(mealType, food);
+      }
+      
+      // Still store the original AI meal object for its insight
+      _log?.aiGeneratedMeals.add(meal);
+      
+      // Recalculate, notify, and save
       _log?.recalculateTotals();
-      
-      // Notify UI immediately for instant update
-      notifyListeners(); 
-      
-      // Save the log and generate insight in the background
+      notifyListeners();
       _saveLog();
-      _generateAndSaveInsight(meal);
+      _generateAndSaveInsight(meal); // This can stay as is
       
       _isAnalyzing = false;
       notifyListeners();
@@ -72,29 +97,43 @@ class NutritionLogProvider extends ChangeNotifier {
       return false;
     }
   }
+  
+  // Helper function to categorize AI meals
+  String _getMealTypeFromName(String aiMealName) {
+    final lowerCaseName = aiMealName.toLowerCase();
+    if (lowerCaseName.contains('breakfast')) return 'Breakfast';
+    if (lowerCaseName.contains('lunch')) return 'Lunch';
+    if (lowerCaseName.contains('dinner')) return 'Dinner';
+    return 'Snacks'; // Default case
+  }
+
+  String? getInsightForMeal(String mealType) {
+    // Find the last AI-generated meal that maps to this meal type.
+    final relevantAiMeal = _log?.aiGeneratedMeals.lastWhere(
+      (meal) => _getMealTypeFromName(meal.mealName) == mealType,
+      orElse: () => Meal(mealName: '', foods: [], protein: 0, carbs: 0, fat: 0, calories: 0), // Return a dummy meal if not found
+    );
+
+    if (relevantAiMeal != null && (relevantAiMeal.aiInsight?.isNotEmpty ?? false)) {
+      return relevantAiMeal.aiInsight;
+    }
+    return null;
+  }
 
   Future<void> _generateAndSaveInsight(Meal meal) async {
-    if (userProfile != null) {
+     if (userProfile != null) {
       final insightText = await _insightService.generateInsight(
         userProfile: userProfile!,
         meal: meal,
       );
       if (insightText != null) {
-        final mealIndex = _log?.meals.indexOf(meal);
+        final mealIndex = _log?.aiGeneratedMeals.indexWhere((m) => m == meal);
         if (mealIndex != null && mealIndex != -1) {
-          _log?.meals[mealIndex].aiInsight = insightText;
-          notifyListeners(); // Update UI with insight
-          _saveLog(); // Save again with the new insight
+          _log?.aiGeneratedMeals[mealIndex].aiInsight = insightText;
+          notifyListeners();
+          _saveLog();
         }
       }
     }
-  }
-  
-  void updateSecondaryData({double? water, bool? isLowCarb}) {
-      if (water != null) _log?.waterIntake = water;
-      if (isLowCarb != null) _log?.isLowCarbDay = isLowCarb;
-      _log?.recalculateTotals();
-      notifyListeners();
-      _saveLog();
   }
 }

@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:myapp/providers/profile_provider.dart'; // NEW
 import 'firebase_options.dart';
 import 'package:provider/provider.dart';
 import 'package:myapp/providers/date_provider.dart';
@@ -35,18 +34,17 @@ Future<void> main() async {
         Provider<FirestoreService>(create: (_) => FirestoreService()),
 
         // App State Providers
-        ChangeNotifierProvider(create: (_) => ChatProvider()), // NEW
+        ChangeNotifierProvider(create: (_) => ChatProvider()),
         ChangeNotifierProvider(create: (_) => DateProvider()),
 
         ChangeNotifierProvider(
           create: (context) => InsightsProvider(
             authService: context.read<AuthService>(),
-            // Pass the FirestoreService instance
             firestoreService: context.read<FirestoreService>(),
           ),
         ),
 
-        // UserProfileProvider is independent
+        // UserProfileProvider is now the single source of truth for the user's profile
         ChangeNotifierProvider(
           create: (context) => UserProfileProvider(
             authService: context.read<AuthService>(),
@@ -54,20 +52,7 @@ Future<void> main() async {
           ),
         ),
 
-        // NEW: ProfileProvider depends on other providers, so we use ChangeNotifierProxyProvider
-        ChangeNotifierProxyProvider<UserProfileProvider, ProfileProvider>(
-          create: (context) => ProfileProvider(
-            authService: context.read<AuthService>(),
-            firestoreService: context.read<FirestoreService>(),
-            userProfileProvider: context.read<UserProfileProvider>(),
-          ),
-          update: (context, userProfileProvider, previousProfileProvider) =>
-              ProfileProvider(
-            authService: context.read<AuthService>(),
-            firestoreService: context.read<FirestoreService>(),
-            userProfileProvider: userProfileProvider, // The important update
-          ),
-        ),
+        // The ProfileProvider has been removed.
       ],
       child: const MyApp(),
     ),

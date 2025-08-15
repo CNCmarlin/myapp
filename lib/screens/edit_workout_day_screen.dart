@@ -6,7 +6,6 @@ import 'package:myapp/services/firestore_service.dart';
 import 'package:provider/provider.dart';
 
 class EditWorkoutDayScreen extends StatefulWidget {
-  // IT NOW ACCEPTS THE FULL PROGRAM OBJECT
   final WorkoutProgram program;
 
   const EditWorkoutDayScreen({
@@ -21,15 +20,39 @@ class EditWorkoutDayScreen extends StatefulWidget {
 class _EditWorkoutDayScreenState extends State<EditWorkoutDayScreen> {
   late WorkoutProgram _program;
   bool _isLoading = false;
+  bool _hasUnsavedChanges = false;
 
   @override
   void initState() {
     super.initState();
-    // Initialize the state with the program passed from the previous screen
-    _program = widget.program;
+    _program = WorkoutProgram.fromMap(widget.program.toMap())..id = widget.program.id;
   }
 
-  // NEW: This method handles the FINAL save to Firestore.
+  Future<bool> _onWillPop() async {
+    if (!_hasUnsavedChanges) {
+      return true;
+    }
+    final shouldPop = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Unsaved Changes'),
+        content: const Text('You have unsaved changes. Are you sure you want to leave?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Discard & Leave'),
+          ),
+        ],
+      ),
+    );
+    return shouldPop ?? false;
+  }
+
+  // --- FIXED: Restored the save logic ---
   Future<void> _confirmAndSaveChanges() async {
     final userId = context.read<AuthService>().currentUser?.uid;
     if (userId == null) {
@@ -43,24 +66,21 @@ class _EditWorkoutDayScreenState extends State<EditWorkoutDayScreen> {
     final firestoreService = FirestoreService();
 
     try {
-      // If the program doesn't have an ID, it's new. Create it.
       if (_program.id.isEmpty) {
+        // This logic is for creating a new program during onboarding
         final newProgramId = await firestoreService.createNewWorkoutProgram(
           userId,
           _program.name,
           _program.days.map((d) => d.dayName).toList(),
         );
-        // We get the new ID back and update our local object.
         _program.id = newProgramId;
-        // Now we update it with any exercises that were added.
         await firestoreService.updateWorkoutProgram(userId, _program);
-
-        // Update the active program in the onboarding provider
+        
         // ignore: use_build_context_synchronously
         Provider.of<OnboardingProvider>(context, listen: false)
             .updateActiveProgramId(newProgramId);
       } else {
-        // If it already has an ID, just update it.
+        // This logic is for updating an existing program
         await firestoreService.updateWorkoutProgram(userId, _program);
       }
 
@@ -68,7 +88,8 @@ class _EditWorkoutDayScreenState extends State<EditWorkoutDayScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Program Saved Successfully!')),
         );
-        Navigator.of(context).pop(); // Go back after saving
+        _hasUnsavedChanges = false; // Mark changes as saved
+        Navigator.of(context).pop();
       }
     } catch (e) {
       if (mounted) {
@@ -84,57 +105,60 @@ class _EditWorkoutDayScreenState extends State<EditWorkoutDayScreen> {
   }
 
   void _onAddExercise(WorkoutDay day) {
-    final exerciseNameController = TextEditingController();
-    final setsRepsController = TextEditingController();
+    _showEditExerciseDialog(day: day);
+  }
+  
+  void _onEditExercise(WorkoutDay day, int exerciseIndex) {
+    final exercise = day.exercises[exerciseIndex];
+    _showEditExerciseDialog(day: day, exercise: exercise, exerciseIndex: exerciseIndex);
+  }
+
+  void _showEditExerciseDialog({required WorkoutDay day, Exercise? exercise, int? exerciseIndex}) {
+    final isEditing = exercise != null;
+    final exerciseNameController = TextEditingController(text: isEditing ? exercise.name : '');
+    final setsRepsController = TextEditingController(text: isEditing ? exercise.programTarget : '');
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Add New Exercise'),
+        title: Text(isEditing ? 'Edit Exercise' : 'Add New Exercise'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(
-              controller: exerciseNameController,
-              decoration: const InputDecoration(labelText: 'Exercise Name'),
-              autofocus: true,
-            ),
-            TextField(
-              controller: setsRepsController,
-              decoration: const InputDecoration(labelText: 'Sets/Reps Target (e.g., 3x 8-10)'),
-            ),
+            TextField(controller: exerciseNameController, decoration: const InputDecoration(labelText: 'Exercise Name'), autofocus: true),
+            TextField(controller: setsRepsController, decoration: const InputDecoration(labelText: 'Sets/Reps Target (e.g., 3x 8-10)')),
           ],
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
+          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
           ElevatedButton(
             onPressed: () {
               final newExerciseName = exerciseNameController.text.trim();
               if (newExerciseName.isNotEmpty) {
                 setState(() {
-                  day.exercises.add(
-                    Exercise(
-                      name: newExerciseName,
-                      programTarget: setsRepsController.text.trim(),
-                      status: 'Incomplete',
-                      sets: [],
-                    ),
+                  _hasUnsavedChanges = true;
+                  final updatedExercise = Exercise(
+                    name: newExerciseName,
+                    programTarget: setsRepsController.text.trim(),
+                    status: 'Incomplete',
+                    sets: isEditing ? exercise.sets : [],
                   );
+                  if (isEditing && exerciseIndex != null) {
+                    day.exercises[exerciseIndex] = updatedExercise;
+                  } else {
+                    day.exercises.add(updatedExercise);
+                  }
                 });
               }
               Navigator.of(context).pop();
             },
-            child: const Text('Add'),
+            child: Text(isEditing ? 'Save' : 'Add'),
           ),
         ],
       ),
     );
   }
-  
-  // NEW: Method to handle renaming a day.
+
   void _onRenameDay(WorkoutDay day) {
     final nameController = TextEditingController(text: day.dayName);
     showDialog(
@@ -156,6 +180,7 @@ class _EditWorkoutDayScreenState extends State<EditWorkoutDayScreen> {
                     final newName = nameController.text.trim();
                     if (newName.isNotEmpty) {
                       setState(() {
+                        _hasUnsavedChanges = true;
                         day.dayName = newName;
                       });
                     }
@@ -170,37 +195,41 @@ class _EditWorkoutDayScreenState extends State<EditWorkoutDayScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Edit: ${_program.name}'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.save),
-            // The button now confirms and saves the program.
-            onPressed: _isLoading ? null : _confirmAndSaveChanges,
-            tooltip: 'Confirm and Save Program',
-          )
-        ],
+    return WillPopScope(
+      onWillPop: _onWillPop,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text('Edit: ${_program.name}'),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.save),
+              onPressed: _isLoading ? null : _confirmAndSaveChanges,
+              tooltip: 'Confirm and Save Program',
+            )
+          ],
+        ),
+        body: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : ListView.builder(
+                padding: const EdgeInsets.all(8.0),
+                itemCount: _program.days.length,
+                itemBuilder: (context, index) {
+                  final day = _program.days[index];
+                  return _WorkoutDayCard(
+                    day: day,
+                    onAddExercise: () => _onAddExercise(day),
+                    onRename: () => _onRenameDay(day),
+                    onExerciseEdited: (exerciseIndex) => _onEditExercise(day, exerciseIndex),
+                    onExerciseDeleted: (exerciseIndex) {
+                      setState(() {
+                        _hasUnsavedChanges = true;
+                        day.exercises.removeAt(exerciseIndex);
+                      });
+                    },
+                  );
+                },
+              ),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : ListView.builder(
-              padding: const EdgeInsets.all(8.0),
-              itemCount: _program.days.length,
-              itemBuilder: (context, index) {
-                final day = _program.days[index];
-                return _WorkoutDayCard(
-                  day: day,
-                  onAddExercise: () => _onAddExercise(day),
-                  onRename: () => _onRenameDay(day),
-                  onExerciseDeleted: (exerciseIndex) {
-                    setState(() {
-                      day.exercises.removeAt(exerciseIndex);
-                    });
-                  },
-                );
-              },
-            ),
     );
   }
 }
@@ -210,12 +239,14 @@ class _WorkoutDayCard extends StatelessWidget {
   final VoidCallback onAddExercise;
   final VoidCallback onRename;
   final ValueChanged<int> onExerciseDeleted;
+  final ValueChanged<int> onExerciseEdited;
 
   const _WorkoutDayCard({
     required this.day,
     required this.onAddExercise,
     required this.onRename,
     required this.onExerciseDeleted,
+    required this.onExerciseEdited,
   });
 
   @override
@@ -224,7 +255,7 @@ class _WorkoutDayCard extends StatelessWidget {
       margin: const EdgeInsets.symmetric(vertical: 8.0),
       child: ExpansionTile(
         title: Text(day.dayName, style: const TextStyle(fontWeight: FontWeight.bold)),
-        trailing: IconButton( // NEW: Rename button for each day
+        trailing: IconButton(
           icon: const Icon(Icons.drive_file_rename_outline, size: 20),
           onPressed: onRename,
           tooltip: 'Rename Day',
@@ -235,9 +266,20 @@ class _WorkoutDayCard extends StatelessWidget {
             ListTile(
               title: Text(day.exercises[i].name),
               subtitle: Text('Target: ${day.exercises[i].programTarget}'),
-              trailing: IconButton(
-                icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
-                onPressed: () => onExerciseDeleted(i),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.edit_outlined, color: Colors.blueAccent),
+                    onPressed: () => onExerciseEdited(i),
+                    tooltip: 'Edit Exercise',
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                    onPressed: () => onExerciseDeleted(i),
+                    tooltip: 'Delete Exercise',
+                  ),
+                ],
               ),
             ),
           Padding(

@@ -8,9 +8,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 enum UserProfileStatus { uninitialized, loading, loaded, error }
 
- 
-
-
 class UserProfileProvider with ChangeNotifier {
   final AuthService _authService;
   final FirestoreService _firestoreService;
@@ -65,10 +62,10 @@ class UserProfileProvider with ChangeNotifier {
       final programsFuture = _firestoreService.getAllWorkoutPrograms(userId);
 
       final results = await Future.wait([profileFuture, programsFuture]);
-      
+
       _userProfile = results[0] as UserProfile?;
       _availablePrograms = results[1] as List<WorkoutProgram>;
-      
+
       _status = UserProfileStatus.loaded;
     } catch (e) {
       _errorMessage = 'Error fetching user data: $e';
@@ -84,10 +81,10 @@ class UserProfileProvider with ChangeNotifier {
     }
   }
 
-   Future<void> updateActiveProgram(String newProgramId) async {
+  Future<void> updateActiveProgram(String newProgramId) async {
     final userId = _authService.currentUser?.uid;
     if (_userProfile == null || userId == null) return;
-    
+
     _userProfile = _userProfile!.copyWith(activeProgramId: newProgramId);
     notifyListeners(); // Optimistic update for the UI
     await _firestoreService.saveUserProfile(userId, _userProfile!);
@@ -183,12 +180,12 @@ class UserProfileProvider with ChangeNotifier {
       await _firestoreService.deleteWorkoutProgram(userId, programId);
       // Update local state
       _availablePrograms.removeWhere((p) => p.id == programId);
-      
+
       // If the deleted program was the active one, clear it
       if (_userProfile?.activeProgramId == programId) {
         _userProfile = _userProfile?.copyWith(activeProgramId: null);
         // We need to save this change on the user's profile document
-        await saveProfileChanges(); 
+        await saveProfileChanges();
       }
 
       notifyListeners();
@@ -197,6 +194,25 @@ class UserProfileProvider with ChangeNotifier {
       notifyListeners();
     }
   }
+
+  Future<void> updateWorkoutProgram(WorkoutProgram program) async {
+        final userId = _authService.currentUser?.uid;
+        if (userId == null) return;
+
+        try {
+          await _firestoreService.updateWorkoutProgram(userId, program);
+          // Update the program in the local list for immediate UI feedback
+          final index =
+              _availablePrograms.indexWhere((p) => p.id == program.id);
+          if (index != -1) {
+            _availablePrograms[index] = program;
+            notifyListeners();
+          }
+        } catch (e) {
+          _errorMessage = 'Error updating program: $e';
+          notifyListeners();
+        }
+      }
 
   @override
   void dispose() {

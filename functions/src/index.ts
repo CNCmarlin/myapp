@@ -122,6 +122,7 @@ export const suggestNutritionGoals = functions.https.onCall(
     const {
       primaryGoal, biologicalSex, weight, height, activityLevel,
       prefersLowCarb, weeklyWeightLossGoal, exerciseDaysPerWeek,
+      fitnessProficiency,
     } = request.data;
     if (
       !primaryGoal || !biologicalSex || !weight || !height || !activityLevel
@@ -131,56 +132,53 @@ export const suggestNutritionGoals = functions.https.onCall(
     }
     const weightKg = weight.unit === "lbs" ?
       weight.value * 0.453592 : weight.value;
-    const heightCm = height.unit === "cm" ?
-      height.value : height.value;
+    const heightCm = height.value; // Assuming height is always passed in cm now
 
-    // FIX: A much more detailed and scientific prompt
     const prompt = `
-      You are an expert nutritionist. Your task is to calculate a highly
-      personalized daily nutrition plan based on detailed user data.
+      You are an expert nutritionist following a strict calculation protocol.
 
       **USER DATA:**
       - Primary Goal: ${primaryGoal}
       - Biological Sex: ${biologicalSex}
       - Weight: ${weightKg.toFixed(2)} kg
       - Height: ${heightCm.toFixed(2)} cm
-      - Daily Activity Level (Non-Exercise): "${activityLevel}"
-      - Planned Exercise Days Per Week: ${exerciseDaysPerWeek}
-      - Dietary Preference: ${prefersLowCarb ? "Prefers Low-Carb" : "Standard"}
-      - Weekly Weight Loss Goal: ${weeklyWeightLossGoal} lbs (if applicable)
+      - Age: 25 (assumed)
+      - Fitness Proficiency: ${fitnessProficiency || "Beginner"}
+      - Daily Activity (Non-Exercise): "${activityLevel}"
+      - Exercise Days/Week: ${exerciseDaysPerWeek}
+      - Preference: ${prefersLowCarb ? "Low-Carb" : "Standard"}
+      - Weight Loss Goal: ${weeklyWeightLossGoal} lbs/week (if applicable)
 
-      **CALCULATION STEPS (Follow these exactly):**
-      1.  Calculate Basal Metabolic Rate (BMR) using the Mifflin-St Jeor
-          equation. Use the user's age, which you must infer is 25 for this
-          calculation.
-      2.  Calculate Total Daily Energy Expenditure (TDEE) by first applying
-          the multiplier for the user's non-exercise "Activity Level" to
-          their BMR (Sedentary: 1.2, Lightly Active: 1.375, Moderately
-          Active: 1.55, Very Active: 1.725).
-      3.  Calculate the weekly exercise calorie bonus: Assume each exercise
-          day burns an additional 400 calories. Multiply this by
-          "Planned Exercise Days Per Week" and divide by 7 to get a daily
-          average exercise bonus. Add this bonus to the TDEE.
-      4.  Adjust final daily calories based on the "Primary Goal":
-          - "Lose Weight": Subtract a daily deficit to meet the
-            "Weekly Weight Loss Goal" (1 lb = 3500 calories).
-          - "Gain Muscle": Add a 300-400 calorie surplus.
-          - "Maintain Weight": Make no adjustment.
-      5.  Calculate Macronutrients:
-          - Protein: 1.8 grams per kg of body weight.
-          - Fat: 25% of total daily calories.
-          - Carbs: The remainder of the calories.
-          - If "Prefers Low-Carb" is true, adjust carbs to be ~20-25% of
-            total calories and increase fat to make up the difference.
-      6.  (Remember: P/C = 4 kcal/g, F = 9 kcal/g).
+      **PROTOCOL:**
+      1.  **Calculate BMR (Mifflin-St Jeor):**
+          - Male: (10 * weight in kg) + (6.25 * height in cm) - (5 * age) + 5
+          - Female: (10 * wgt in kg) + (6.25 * hgt in cm) - (5 * age) - 161
+      2.  **Calculate TDEE:**
+          - TDEE = BMR * Activity Multiplier (Sedentary: 1.2, Lightly:
+            1.375, Mod: 1.55, Very: 1.725).
+      3.  **Add Exercise Bonus:**
+          - Daily Bonus = (Exercise Days * Calories per Session) / 7.
+          - (Beginner: 300, Intermediate: 400, Advanced: 500 kcal).
+          - Final TDEE = TDEE + Daily Bonus.
+      4.  **Adjust for Goal:**
+          - Lose Weight: Subtract deficit for goal (1lb = 3500kcal/wk).
+          - Gain Muscle: Add 350 kcal surplus.
+          - Maintain: No change.
+      5.  **Calculate Macros:**
+          - Protein (g) = Weight (kg) * 1.8.
+          - Fat (g) = (Final Calories * 0.25) / 9.
+          - Carbs (g) = (Final Calories - (Protein*4 + Fat*9)) / 4.
+          - If Low-Carb: Carbs = (Final Calories * 0.20) / 4, recalculate
+            Fat with remaining calories.
+      6.  **Final Check:** The sum of (Protein*4 + Carbs*4 + Fat*9) MUST
+          be within 20 calories of your final calorie target. Adjust carbs
+          slightly to match if needed.
 
-      **IMPORTANT:** Respond with ONLY a valid JSON object. All values must
-      be rounded to a whole number.
+      **OUTPUT:** Respond with ONLY a valid JSON object. All values must be
+      rounded to a whole number.
       {
-        "targetCalories": number,
-        "targetProtein": number,
-        "targetCarbs": number,
-        "targetFat": number
+        "targetCalories": number, "targetProtein": number,
+        "targetCarbs": number, "targetFat": number
       }
     `;
 
@@ -348,6 +346,73 @@ export const processWorkoutUserInput = functions.https.onCall(
   },
 );
 
+export const calculateMacrosFromCalories = functions.https.onCall(
+  async (request) => {
+    if (!request.auth) {
+      throw new functions.https.HttpsError(
+        "unauthenticated", "You must be logged in.");
+    }
+    const {
+      targetCalories,
+      userProfile,
+    } = request.data;
+    if (!targetCalories || !userProfile) {
+      throw new functions.https.HttpsError(
+        "invalid-argument", "Missing required calorie or profile data.");
+    }
+
+    const weightKg = userProfile.weight.unit === "lbs" ?
+      userProfile.weight.value * 0.453592 : userProfile.weight.value;
+
+    const prompt = `
+      You are an expert nutritionist following a strict calculation protocol.
+
+      **USER DATA:**
+      - Target Calories: ${targetCalories}
+      - Weight: ${weightKg.toFixed(2)} kg
+      - Primary Goal: ${userProfile.primaryGoal}
+      - Dietary Preference: ${userProfile.prefersLowCarb ?
+    "Low-Carb" : "Standard"}
+
+      **PROTOCOL:**
+      1.  **Calculate Protein:**
+          - Protein (g) = Weight (kg) * 1.8.
+      2.  **Calculate Fat:**
+          - Fat (g) = (Target Calories * 0.25) / 9.
+      3.  **Calculate Carbs:**
+          - Carbs (g) = (Target Calories - (Protein*4 + Fat*9)) / 4.
+      4.  **Low-Carb Adjustment:**
+          - If preference is "Low-Carb", set Carbs to (Target Calories *
+            0.20) / 4 and recalculate Fat with the remaining calories.
+      5.  **Final Check:** The sum of (Protein*4 + Carbs*4 + Fat*9) MUST
+          be within 10 calories of the Target Calories. Adjust carbs
+          slightly if needed to match.
+
+      **IMPORTANT:** Respond with ONLY a valid JSON object. All values must
+      be rounded to a whole number.
+      {
+        "targetProtein": number,
+        "targetCarbs": number,
+        "targetFat": number
+      }
+    `;
+
+    try {
+      const result = await generativeModel.generateContent(prompt);
+      let jsonString = result.response.candidates?.[0]
+        ?.content?.parts?.[0]?.text ?? "{}";
+      if (jsonString.startsWith("```json")) {
+        jsonString = jsonString.substring(7, jsonString.length - 3);
+      }
+      return JSON.parse(jsonString);
+    } catch (error) {
+      console.error("Error in calculateMacrosFromCalories:", error);
+      throw new functions.https.HttpsError(
+        "internal", "Failed to generate macros.");
+    }
+  },
+);
+
 export const getMealFromText = functions.https.onCall(async (request) => {
   if (!request.auth) {
     throw new functions.https.HttpsError(
@@ -452,7 +517,7 @@ export const generateAiWorkoutProgram = functions.https.onCall(
       throw new functions.https.HttpsError(
         "unauthenticated", "You must be logged in.");
     }
-    const { prompt, equipmentInfo, userProfile } = request.data;
+    const {prompt, equipmentInfo, userProfile} = request.data;
     if (!prompt || !equipmentInfo || !userProfile) {
       throw new functions.https.HttpsError(
         "invalid-argument", "Missing required data.");

@@ -1,9 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:myapp/models/workout_data.dart';
-import 'package:myapp/providers/onboarding_provider.dart';
-import 'package:myapp/services/auth_service.dart';
-import 'package:myapp/services/firestore_service.dart';
-import 'package:provider/provider.dart';
 
 class EditWorkoutDayScreen extends StatefulWidget {
   final WorkoutProgram program;
@@ -19,7 +15,6 @@ class EditWorkoutDayScreen extends StatefulWidget {
 
 class _EditWorkoutDayScreenState extends State<EditWorkoutDayScreen> {
   late WorkoutProgram _program;
-  bool _isLoading = false;
   bool _hasUnsavedChanges = false;
 
   @override
@@ -52,57 +47,6 @@ class _EditWorkoutDayScreenState extends State<EditWorkoutDayScreen> {
     return shouldPop ?? false;
   }
 
-  // --- FIXED: Restored the save logic ---
-  Future<void> _confirmAndSaveChanges() async {
-    final userId = context.read<AuthService>().currentUser?.uid;
-    if (userId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Error: Could not save. User not found.')),
-      );
-      return;
-    }
-
-    setState(() => _isLoading = true);
-    final firestoreService = FirestoreService();
-
-    try {
-      if (_program.id.isEmpty) {
-        // This logic is for creating a new program during onboarding
-        final newProgramId = await firestoreService.createNewWorkoutProgram(
-          userId,
-          _program.name,
-          _program.days.map((d) => d.dayName).toList(),
-        );
-        _program.id = newProgramId;
-        await firestoreService.updateWorkoutProgram(userId, _program);
-        
-        // ignore: use_build_context_synchronously
-        Provider.of<OnboardingProvider>(context, listen: false)
-            .updateActiveProgramId(newProgramId);
-      } else {
-        // This logic is for updating an existing program
-        await firestoreService.updateWorkoutProgram(userId, _program);
-      }
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Program Saved Successfully!')),
-        );
-        _hasUnsavedChanges = false; // Mark changes as saved
-        Navigator.of(context).pop();
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error saving program: $e')),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
-  }
 
   void _onAddExercise(WorkoutDay day) {
     _showEditExerciseDialog(day: day);
@@ -201,34 +145,27 @@ class _EditWorkoutDayScreenState extends State<EditWorkoutDayScreen> {
         appBar: AppBar(
           title: Text('Edit: ${_program.name}'),
           actions: [
-            IconButton(
-              icon: const Icon(Icons.save),
-              onPressed: _isLoading ? null : _confirmAndSaveChanges,
-              tooltip: 'Confirm and Save Program',
-            )
           ],
         ),
-        body: _isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : ListView.builder(
-                padding: const EdgeInsets.all(8.0),
-                itemCount: _program.days.length,
-                itemBuilder: (context, index) {
-                  final day = _program.days[index];
-                  return _WorkoutDayCard(
-                    day: day,
-                    onAddExercise: () => _onAddExercise(day),
-                    onRename: () => _onRenameDay(day),
-                    onExerciseEdited: (exerciseIndex) => _onEditExercise(day, exerciseIndex),
-                    onExerciseDeleted: (exerciseIndex) {
-                      setState(() {
-                        _hasUnsavedChanges = true;
-                        day.exercises.removeAt(exerciseIndex);
-                      });
-                    },
-                  );
+        body: ListView.builder(
+            padding: const EdgeInsets.all(8.0),
+            itemCount: _program.days.length,
+            itemBuilder: (context, index) {
+              final day = _program.days[index];
+              return _WorkoutDayCard(
+                day: day,
+                onAddExercise: () => _onAddExercise(day),
+                onRename: () => _onRenameDay(day),
+                onExerciseEdited: (exerciseIndex) => _onEditExercise(day, exerciseIndex),
+                onExerciseDeleted: (exerciseIndex) {
+                  setState(() {
+                    _hasUnsavedChanges = true;
+                    day.exercises.removeAt(exerciseIndex);
+                  });
                 },
-              ),
+              );
+            },
+          ),
       ),
     );
   }

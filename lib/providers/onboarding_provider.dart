@@ -48,8 +48,9 @@ class OnboardingProvider with ChangeNotifier {
     notifyListeners();
   }
 
-    void updateFitnessProficiency(String proficiency) {
-    _temporaryProfile = _temporaryProfile.copyWith(fitnessProficiency: proficiency);
+  void updateFitnessProficiency(String proficiency) {
+    _temporaryProfile =
+        _temporaryProfile.copyWith(fitnessProficiency: proficiency);
     notifyListeners();
   }
 
@@ -63,11 +64,12 @@ class OnboardingProvider with ChangeNotifier {
     );
     notifyListeners();
   }
-  
+
   // NEW: Methods for enhanced onboarding data
-  
+
   void updatePrefersLowCarb(bool prefersLowCarb) {
-    _temporaryProfile = _temporaryProfile.copyWith(prefersLowCarb: prefersLowCarb);
+    _temporaryProfile =
+        _temporaryProfile.copyWith(prefersLowCarb: prefersLowCarb);
     notifyListeners();
   }
 
@@ -76,8 +78,19 @@ class OnboardingProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  void updateAge(int age) {
+    _temporaryProfile = _temporaryProfile.copyWith(age: age);
+    notifyListeners();
+  }
+
   void updateExerciseDaysPerWeek(int days) {
     _temporaryProfile = _temporaryProfile.copyWith(exerciseDaysPerWeek: days);
+    notifyListeners();
+  }
+
+  void updateGoalWeight(double value, String unit) {
+    _temporaryProfile =
+        _temporaryProfile.copyWith(goalWeight: {'value': value, 'unit': unit});
     notifyListeners();
   }
 }

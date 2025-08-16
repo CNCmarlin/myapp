@@ -22,7 +22,8 @@ class ProgramManagementScreen extends StatelessWidget {
           ? const Center(child: CircularProgressIndicator())
           : workoutPrograms.isEmpty
               ? const Center(
-                  child: Text('No workout programs found. Create one from your Profile page!'))
+                  child: Text(
+                      'No workout programs found. Create one from your Profile page!'))
               : ListView.builder(
                   padding: const EdgeInsets.all(8.0),
                   itemCount: workoutPrograms.length,
@@ -80,7 +81,8 @@ class _ProgramCard extends StatelessWidget {
       builder: (dialogContext) {
         return AlertDialog(
           title: const Text('Delete Program?'),
-          content: Text('Are you sure you want to delete "${program.name}"? This action cannot be undone.'),
+          content: Text(
+              'Are you sure you want to delete "${program.name}"? This action cannot be undone.'),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
@@ -89,7 +91,9 @@ class _ProgramCard extends StatelessWidget {
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
               onPressed: () {
-                context.read<UserProfileProvider>().deleteWorkoutProgram(program.id);
+                context
+                    .read<UserProfileProvider>()
+                    .deleteWorkoutProgram(program.id);
                 Navigator.of(dialogContext).pop();
               },
               child: const Text('Delete'),
@@ -112,7 +116,10 @@ class _ProgramCard extends StatelessWidget {
             ListTile(
               title: Text(
                 program.name,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                style: Theme.of(context)
+                    .textTheme
+                    .titleLarge
+                    ?.copyWith(fontWeight: FontWeight.bold),
               ),
               subtitle: Text('${program.days.length} days'),
             ),
@@ -128,7 +135,8 @@ class _ProgramCard extends StatelessWidget {
                     onPressed: () => _showRenameDialog(context),
                   ),
                   IconButton(
-                    icon: Icon(Icons.delete_outline, color: Colors.red.shade700),
+                    icon:
+                        Icon(Icons.delete_outline, color: Colors.red.shade700),
                     tooltip: 'Delete Program',
                     onPressed: () => _showDeleteConfirmation(context),
                   ),
@@ -136,16 +144,21 @@ class _ProgramCard extends StatelessWidget {
                   ElevatedButton.icon(
                     icon: const Icon(Icons.settings_outlined),
                     label: const Text('Edit Days & Exercises'),
-                    onPressed: () {
-                      Navigator.push(
+                    onPressed: () async {
+                      final result = await Navigator.push<WorkoutProgram>(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => EditWorkoutDayScreen(program: program),
+                          builder: (context) =>
+                              EditWorkoutDayScreen(program: program),
                         ),
-                      ).then((_) {
-                        // Refresh all data when returning
-                        context.read<UserProfileProvider>().refreshData();
-                      });
+                      );
+
+                      // If the editor returns a modified program, save it.
+                      if (result != null && context.mounted) {
+                        await context
+                            .read<UserProfileProvider>()
+                            .updateWorkoutProgram(result);
+                      }
                     },
                   ),
                 ],

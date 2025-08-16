@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class UserProfile {
   String? activityLevel;
@@ -11,18 +10,16 @@ class UserProfile {
   Map<String, dynamic>? height;
   Map<String, dynamic>? measurements;
   bool onboardingCompleted;
-
-  // Nutrition goals
   double? targetCalories;
   double? targetProtein;
   double? targetCarbs;
   double? targetFat;
-
-  // NEW: Fields for enhanced onboarding
   bool prefersLowCarb;
-  double weeklyWeightLossGoal; // In lbs or kg, consistent with unitSystem
+  double weeklyWeightLossGoal;
   int exerciseDaysPerWeek;
   String? fitnessProficiency;
+  int? age;
+  Map<String, dynamic>? goalWeight; // NEW FIELD
 
   UserProfile({
     this.activityLevel,
@@ -39,11 +36,12 @@ class UserProfile {
     this.targetProtein = 0.0,
     this.targetCarbs = 0.0,
     this.targetFat = 0.0,
-    // NEW: Add to constructor with default values
     this.prefersLowCarb = false,
     this.weeklyWeightLossGoal = 1.0,
     this.exerciseDaysPerWeek = 3,
-     this.fitnessProficiency = 'Beginner',
+    this.fitnessProficiency = 'Beginner',
+    this.age,
+    this.goalWeight, // NEW FIELD
   });
 
   Map<String, dynamic> toMap() {
@@ -62,11 +60,12 @@ class UserProfile {
       'targetProtein': targetProtein,
       'targetCarbs': targetCarbs,
       'targetFat': targetFat,
-      // NEW: Add to toMap
       'prefersLowCarb': prefersLowCarb,
       'weeklyWeightLossGoal': weeklyWeightLossGoal,
       'exerciseDaysPerWeek': exerciseDaysPerWeek,
       'fitnessProficiency': fitnessProficiency,
+      'age': age,
+      'goalWeight': goalWeight, // NEW FIELD
     };
   }
 
@@ -86,18 +85,13 @@ class UserProfile {
       targetProtein: (map['targetProtein'] as num?)?.toDouble() ?? 0.0,
       targetCarbs: (map['targetCarbs'] as num?)?.toDouble() ?? 0.0,
       targetFat: (map['targetFat'] as num?)?.toDouble() ?? 0.0,
-      // NEW: Add to fromMap with null-safe defaults
       prefersLowCarb: map['prefersLowCarb'] ?? false,
       weeklyWeightLossGoal: (map['weeklyWeightLossGoal'] as num?)?.toDouble() ?? 1.0,
       exerciseDaysPerWeek: (map['exerciseDaysPerWeek'] as num?)?.toInt() ?? 3,
-            fitnessProficiency: map['fitnessProficiency'] ?? 'Beginner', // NEW FIELD
-
+      fitnessProficiency: map['fitnessProficiency'] ?? 'Beginner',
+      age: map['age'] as int?,
+      goalWeight: map['goalWeight'], // NEW FIELD
     );
-  }
-
-  factory UserProfile.fromDocument(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
-    return UserProfile.fromMap(data);
   }
 
   UserProfile copyWith({
@@ -115,12 +109,12 @@ class UserProfile {
     double? targetProtein,
     double? targetCarbs,
     double? targetFat,
-    // NEW: Add to copyWith
     bool? prefersLowCarb,
     double? weeklyWeightLossGoal,
     int? exerciseDaysPerWeek,
-        String? fitnessProficiency, // NEW FIELD
-
+    String? fitnessProficiency,
+    int? age,
+    Map<String, dynamic>? goalWeight, // NEW FIELD
   }) {
     return UserProfile(
       activityLevel: activityLevel ?? this.activityLevel,
@@ -137,12 +131,12 @@ class UserProfile {
       targetProtein: targetProtein ?? this.targetProtein,
       targetCarbs: targetCarbs ?? this.targetCarbs,
       targetFat: targetFat ?? this.targetFat,
-      // NEW: Add to copyWith return
       prefersLowCarb: prefersLowCarb ?? this.prefersLowCarb,
       weeklyWeightLossGoal: weeklyWeightLossGoal ?? this.weeklyWeightLossGoal,
       exerciseDaysPerWeek: exerciseDaysPerWeek ?? this.exerciseDaysPerWeek,
-            fitnessProficiency: fitnessProficiency ?? this.fitnessProficiency, // NEW FIELD
-
+      fitnessProficiency: fitnessProficiency ?? this.fitnessProficiency,
+      age: age ?? this.age,
+      goalWeight: goalWeight ?? this.goalWeight, // NEW FIELD
     );
   }
-}
+} 

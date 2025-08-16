@@ -22,4 +22,22 @@ class NutritionGoalService {
       return null;
     }
   }
+   Future<Map<String, dynamic>?> getMacrosFromCalories(
+      double calories, UserProfile userProfile) async {
+    try {
+      final callable = _functions.httpsCallable('calculateMacrosFromCalories');
+      final result = await callable.call({
+        'targetCalories': calories,
+        'userProfile': userProfile.toMap(),
+      });
+      return Map<String, dynamic>.from(result.data);
+    } on FirebaseFunctionsException catch (e) {
+      print(
+          "Cloud Function Error (calculateMacrosFromCalories): ${e.code} ${e.message}");
+      return null;
+    } catch (e) {
+      print("Error calling calculateMacrosFromCalories: $e");
+      return null;
+    }
+  }
 }

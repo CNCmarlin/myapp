@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 //import 'package:myapp/models/workout_data.dart';
 //import 'package:myapp/providers/profile_provider.dart';
-import 'package:myapp/providers/user_profile_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:myapp/screens/dashboard_screen.dart';
@@ -41,7 +40,6 @@ class _AppHubScreenState extends State<AppHubScreen> {
 
   AppBar _buildAppBar(BuildContext context) {
   final dateProvider = context.watch<DateProvider>();
-  final userProfileProvider = context.watch<UserProfileProvider>();
   final dateString = DateFormat('yyyy-MM-dd').format(dateProvider.selectedDate);
 
   final List<String> titles = <String>[

@@ -3,10 +3,13 @@ import 'package:myapp/models/workout_data.dart';
 
 class EditWorkoutDayScreen extends StatefulWidget {
   final WorkoutProgram program;
+  // NEW: A callback function to handle the save action.
+  final Future<void> Function(WorkoutProgram updatedProgram) onSave;
 
   const EditWorkoutDayScreen({
     super.key,
     required this.program,
+    required this.onSave,
   });
 
   @override
@@ -16,6 +19,7 @@ class EditWorkoutDayScreen extends StatefulWidget {
 class _EditWorkoutDayScreenState extends State<EditWorkoutDayScreen> {
   late WorkoutProgram _program;
   bool _hasUnsavedChanges = false;
+  bool _isSaving = false;
 
   @override
   void initState() {
@@ -24,27 +28,44 @@ class _EditWorkoutDayScreenState extends State<EditWorkoutDayScreen> {
   }
 
   Future<bool> _onWillPop() async {
-    if (!_hasUnsavedChanges) {
-      return true;
-    }
+    if (!_hasUnsavedChanges) return true;
     final shouldPop = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Unsaved Changes'),
         content: const Text('You have unsaved changes. Are you sure you want to leave?'),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Discard & Leave'),
-          ),
+          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Discard & Leave')),
         ],
       ),
     );
     return shouldPop ?? false;
+  }
+
+  Future<void> _confirmAndSaveChanges() async {
+    setState(() => _isSaving = true);
+    try {
+      // Use the provided callback to save the program.
+      await widget.onSave(_program);
+      if (mounted) {
+        _hasUnsavedChanges = false;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Program Saved!'), backgroundColor: Colors.green),
+        );
+        Navigator.of(context).pop();
+      }
+    } catch (e) {
+       if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error saving: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
+    }
   }
 
 
@@ -145,6 +166,12 @@ class _EditWorkoutDayScreenState extends State<EditWorkoutDayScreen> {
         appBar: AppBar(
           title: Text('Edit: ${_program.name}'),
           actions: [
+            // NEW: Visible Save Button
+            IconButton(
+              icon: _isSaving ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2,)) : const Icon(Icons.save),
+              onPressed: _isSaving ? null : _confirmAndSaveChanges,
+              tooltip: 'Save Program',
+            )
           ],
         ),
         body: ListView.builder(

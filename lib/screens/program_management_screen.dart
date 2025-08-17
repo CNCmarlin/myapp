@@ -144,21 +144,26 @@ class _ProgramCard extends StatelessWidget {
                   ElevatedButton.icon(
                     icon: const Icon(Icons.settings_outlined),
                     label: const Text('Edit Days & Exercises'),
-                    onPressed: () async {
-                      final result = await Navigator.push<WorkoutProgram>(
+                    // In _ProgramCard -> build() -> ElevatedButton.icon
+                    onPressed: () {
+                      // We no longer await a result here.
+                      Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) =>
-                              EditWorkoutDayScreen(program: program),
+                          builder: (context) => EditWorkoutDayScreen(
+                            program: program,
+                            // Pass the provider's update method as the onSave callback.
+                            onSave: (updatedProgram) async {
+                              await context
+                                  .read<UserProfileProvider>()
+                                  .updateWorkoutProgram(updatedProgram);
+                            },
+                          ),
                         ),
-                      );
-
-                      // If the editor returns a modified program, save it.
-                      if (result != null && context.mounted) {
-                        await context
-                            .read<UserProfileProvider>()
-                            .updateWorkoutProgram(result);
-                      }
+                      ).then((_) {
+                        // Refresh data when returning, in case names changed etc.
+                        context.read<UserProfileProvider>().refreshData();
+                      });
                     },
                   ),
                 ],

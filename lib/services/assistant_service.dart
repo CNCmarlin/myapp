@@ -1,45 +1,51 @@
+// lib/services/assistant_service.dart
+
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:flutter/foundation.dart';
+import 'package:myapp/models/meal_data.dart';
 import 'package:myapp/models/workout_data.dart';
-import 'package:myapp/models/user_profile.dart';
+import '../models/assistant_response.dart';
+import '../models/chat_message.dart';
+import '../models/user_profile.dart';
 
 class AssistantService {
   final FirebaseFunctions _functions = FirebaseFunctions.instance;
 
-  Future<String> sendMessage(String prompt) async {
-    try {
-      final callable = _functions.httpsCallable('aiAssistant');
-      final result = await callable.call({'prompt': prompt});
-      return result.data['responseText'] as String? ?? "Sorry, I didn't understand that.";
-    } catch (e) {
-      print("Error calling AI Assistant: $e");
-      return "An error occurred while contacting the assistant.";
-    }
-  }
-
-  // In lib/services/assistant_service.dart
-
-  Future<WorkoutProgram?> generateProgram({
+   Future<AssistantResponse> getAssistantResponse({
     required String prompt,
-    required String equipmentInfo,
-    required UserProfile userProfile, // NEW PARAMETER
+    required List<ChatMessage> history,
+    required UserProfile userProfile,
+    Workout? lastWorkout, // NEW optional parameter
+    List<NutritionLog>? recentNutritionLogs, // NEW optional parameter
   }) async {
     try {
-      final callable = _functions.httpsCallable('generateAiWorkoutProgram');
+      final callable = _functions.httpsCallable('aiAssistantRouter');
       final result = await callable.call({
         'prompt': prompt,
-        'equipmentInfo': equipmentInfo,
-        'userProfile': userProfile.toMap(), // Pass the user profile data
+        'history': history.map((m) => m.toMap()).toList(),
+        'userProfile': userProfile.toMap(),
+        'lastWorkout': lastWorkout?.toMap(), // Pass to backend
+        'recentNutritionLogs':
+            recentNutritionLogs?.map((l) => l.toMap()).toList(), // Pass to backend
       });
 
-      if (result.data == null) return null;
-      return WorkoutProgram.fromCloudFunction(result.data as Map<String, dynamic>);
-
+      return AssistantResponse.fromMap(result.data as Map<String, dynamic>);
     } on FirebaseFunctionsException catch (e) {
-      print("Cloud Function Error (generateAiWorkoutProgram): ${e.code} ${e.message}");
-      return null;
+      if (kDebugMode) {
+        print("Cloud Function Error (aiAssistantRouter): ${e.code} ${e.message}");
+      }
+      return AssistantResponse(
+        type: AssistantResponseType.text,
+        textResponse: "An error occurred while contacting the assistant.",
+      );
     } catch (e) {
-      print("Error parsing AI program response: $e");
-      return null;
+      if (kDebugMode) {
+        print("Error parsing AI response: $e");
+      }
+      return AssistantResponse(
+        type: AssistantResponseType.text,
+        textResponse: "An unexpected error occurred.",
+      );
     }
   }
-}                                 
+}

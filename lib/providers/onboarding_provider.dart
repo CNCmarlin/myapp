@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:myapp/models/user_profile.dart'; // Adjust import if needed
+import '../models/user_profile.dart'; // Adjust import if needed
 
 class OnboardingProvider with ChangeNotifier {
   // A private, temporary UserProfile object to store onboarding data.

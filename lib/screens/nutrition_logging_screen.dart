@@ -1,318 +1,200 @@
+// lib/screens/nutrition_logging_screen.dart
+
 import 'package:flutter/material.dart';
-import 'package:myapp/models/meal_data.dart';
-import 'package:myapp/models/user_profile.dart';
-import 'package:myapp/providers/date_provider.dart';
-import 'package:myapp/providers/nutrition_log_provider.dart';
-import 'package:myapp/providers/user_profile_provider.dart';
-import 'package:myapp/services/auth_service.dart';
-import 'package:myapp/widgets/macro_indicator.dart';
-import 'package:myapp/screens/manual_meal_entry_screen.dart';
+import '../models/meal_data.dart';
+import '../models/user_profile.dart';
+import '../providers/nutrition_log_provider.dart';
+import '../providers/user_profile_provider.dart';
+import '../screens/manual_meal_entry_screen.dart';
+import '../widgets/macro_indicator.dart';
 import 'package:provider/provider.dart';
 
-class NutritionLoggingScreen extends StatelessWidget {
+class NutritionLoggingScreen extends StatefulWidget {
   const NutritionLoggingScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final userId = context.read<AuthService>().currentUser?.uid;
-    final selectedDate = context.watch<DateProvider>().selectedDate;
-    final userProfile = context.watch<UserProfileProvider>().userProfile;
-
-    if (userId == null) {
-      return const Center(child: Text("Please sign in."));
-    }
-
-    return ChangeNotifierProvider(
-      create: (_) => NutritionLogProvider(
-        userId: userId,
-        date: selectedDate,
-        userProfile: userProfile,
-      ),
-      child: const _NutritionLoggingView(),
-    );
-  }
+  State<NutritionLoggingScreen> createState() => _NutritionLoggingScreenState();
 }
 
-class _NutritionLoggingView extends StatelessWidget {
-  const _NutritionLoggingView();
+class _NutritionLoggingScreenState extends State<NutritionLoggingScreen> {
+  final _textController = TextEditingController();
+
+  void _addMealFromText(BuildContext context) {
+    if (_textController.text.trim().isEmpty) return;
+    context.read<NutritionLogProvider>().addMealFromText(_textController.text);
+    _textController.clear();
+    FocusScope.of(context).unfocus();
+  }
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    super.dispose();
+  }
+
+  void _navigateAndAddFood(BuildContext context, String mealType) async {
+    final provider = context.read<NutritionLogProvider>();
+    final result = await Navigator.push<FoodItem>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const ManualMealEntryScreen(),
+      ),
+    );
+
+    if (result != null) {
+      provider.addFoodToMeal(mealType, result);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final provider = context.watch<NutritionLogProvider>();
+    final nutritionProvider = context.watch<NutritionLogProvider>();
     final userProfile = context.watch<UserProfileProvider>().userProfile;
 
-    if (provider.isLoading) {
-      return const Scaffold(
-          body: Center(child: CircularProgressIndicator()));
+    if (nutritionProvider.isLoading || userProfile == null) {
+      return const Center(child: CircularProgressIndicator());
     }
-    
-    final mealTypes = ['Breakfast', 'Lunch', 'Dinner', 'Snacks'];
+
+    final log = nutritionProvider.log!;
+    final mealTypes = log.meals.keys.toList();
 
     return DefaultTabController(
       length: mealTypes.length,
-      child: Scaffold(
-        body: NestedScrollView(
-          headerSliverBuilder: (context, innerBoxIsScrolled) {
-            return <Widget>[
-              SliverAppBar(
-                title: _DailySummaryCard(log: provider.log, profile: userProfile),
-                pinned: true,
-                floating: true,
-                forceElevated: innerBoxIsScrolled,
-                toolbarHeight: 140, // Height for the summary card area
-                bottom: TabBar(
-                  tabs: mealTypes.map((name) => Tab(text: name)).toList(),
-                ),
-              ),
-            ];
-          },
-          body: TabBarView(
-            children: mealTypes.map((mealType) {
-              final foodItems = provider.log?.meals[mealType] ?? [];
-              final insight = provider.getInsightForMeal(mealType);
-              return _MealListView(
-                mealType: mealType,
-                foodItems: foodItems,
-                aiInsight: insight,
-              );
-            }).toList(),
+      child: Column(
+        children: [
+          _buildTotalsCard(log, userProfile),
+          TabBar(
+            isScrollable: true,
+            tabs: mealTypes.map((type) => Tab(text: type)).toList(),
           ),
-        ),
-        bottomNavigationBar: const _AiEntryBar(),
+          Expanded(
+            child: TabBarView(
+              children: mealTypes.map((type) {
+                return _buildMealList(
+                  context,
+                  type,
+                  log.meals[type]!,
+                  nutritionProvider,
+                );
+              }).toList(),
+            ),
+          ),
+          _buildAiInputField(context, nutritionProvider.isAnalyzing),
+        ],
       ),
     );
   }
-}
 
-class _MealListView extends StatelessWidget {
-  final String mealType;
-  final List<FoodItem> foodItems;
-  final String? aiInsight;
-
-  const _MealListView({required this.mealType, required this.foodItems, this.aiInsight});
-
-  void _addFoodItem(BuildContext context) async {
-    final result = await Navigator.of(context).push<FoodItem>(
-      MaterialPageRoute(builder: (ctx) => const ManualMealEntryScreen()),
-    );
-    if (result != null && context.mounted) {
-      context.read<NutritionLogProvider>().addFoodToMeal(mealType, result);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (foodItems.isEmpty && aiInsight == null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+  Widget _buildTotalsCard(NutritionLog log, UserProfile profile) {
+    return Card(
+      margin: const EdgeInsets.all(8.0),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            Text('No food logged for $mealType'),
-            const SizedBox(height: 8),
-            ElevatedButton(
-              onPressed: () => _addFoodItem(context),
-              child: const Text('Add Food'),
-            )
+            MacroIndicator(
+              label: 'Calories',
+              value: log.totalCalories,
+              target: profile.targetCalories ?? 0,
+              color: Colors.blue, // ADDED
+            ),
+            MacroIndicator(
+              label: 'Protein',
+              value: log.totalMacros['protein'] ?? 0,
+              target: profile.targetProtein ?? 0,
+              unit: 'g',
+              color: Colors.red, // ADDED
+            ),
+            MacroIndicator(
+              label: 'Carbs',
+              value: log.totalMacros['carbs'] ?? 0,
+              target: profile.targetCarbs ?? 0,
+              unit: 'g',
+              color: Colors.orange, // ADDED
+            ),
+            MacroIndicator(
+              label: 'Fat',
+              value: log.totalMacros['fat'] ?? 0,
+              target: profile.targetFat ?? 0,
+              unit: 'g',
+              color: Colors.purple, // ADDED
+            ),
           ],
         ),
-      );
-    }
+      ),
+    );
+  }
 
+  Widget _buildMealList(
+    BuildContext context,
+    String mealType,
+    List<FoodItem> foodItems,
+    NutritionLogProvider provider,
+  ) {
     return ListView.builder(
-      padding: const EdgeInsets.only(top: 8),
-      itemCount: foodItems.length + 2, // +1 for insight, +1 for add button
+      padding: const EdgeInsets.all(8.0),
+      itemCount: foodItems.length + 1, // +1 for the "Add Food" button
       itemBuilder: (context, index) {
-        if (index == 0) {
-          if (aiInsight != null) {
-            return Card(
-              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              color: Colors.deepPurple.shade50,
-              child: Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(Icons.auto_awesome, size: 18, color: Colors.deepPurple.shade300),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        aiInsight!,
-                        style: TextStyle(fontStyle: FontStyle.italic, color: Colors.deepPurple.shade700),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }
-          return const SizedBox.shrink();
-        }
-
-        if (index == foodItems.length + 1) {
-          return Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: OutlinedButton.icon(
-              onPressed: () => _addFoodItem(context),
+        if (index == foodItems.length) {
+          return Center(
+            child: TextButton.icon(
               icon: const Icon(Icons.add),
-              label: const Text('Add Another Food'),
+              label: const Text('Add Food Manually'),
+              onPressed: () => _navigateAndAddFood(context, mealType),
             ),
           );
         }
-
-        final item = foodItems[index - 1];
+        final item = foodItems[index];
         return ListTile(
           title: Text(item.name),
           subtitle: Text(
-              '${item.calories.toStringAsFixed(0)} kcal | P:${item.protein.toStringAsFixed(0)} C:${item.carbs.toStringAsFixed(0)} F:${item.fat.toStringAsFixed(0)}'),
+              '${item.calories.toStringAsFixed(0)} kcal - P:${item.protein.toStringAsFixed(0)}g C:${item.carbs.toStringAsFixed(0)}g F:${item.fat.toStringAsFixed(0)}g'),
           trailing: IconButton(
-            icon: const Icon(Icons.delete_outline),
-            onPressed: () {
-              context.read<NutritionLogProvider>().removeFoodFromMeal(mealType, item);
-            },
+            icon: const Icon(Icons.delete_outline, color: Colors.red),
+            onPressed: () => provider.removeFoodFromMeal(mealType, item),
           ),
         );
       },
     );
   }
-}
 
-class _AiEntryBar extends StatefulWidget {
-  const _AiEntryBar();
-  @override
-  State<_AiEntryBar> createState() => _AiEntryBarState();
-}
-
-class _AiEntryBarState extends State<_AiEntryBar> {
-  final _controller = TextEditingController();
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-  
-  Future<void> _onAiSubmit() async {
-    final provider = context.read<NutritionLogProvider>();
-    final text = _controller.text.trim();
-    if (text.isEmpty) return;
-    
-    FocusScope.of(context).unfocus();
-    final success = await provider.addMealFromText(text);
-
-    if (mounted) {
-      if (success) {
-        _controller.clear();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('AI Meal added successfully!')),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Sorry, the AI couldn't understand that.")),
-        );
-      }
-    }
-  }
-  
-  @override
-  Widget build(BuildContext context) {
-    final provider = context.watch<NutritionLogProvider>();
-    return Container(
-      color: Theme.of(context).scaffoldBackgroundColor,
-      padding: EdgeInsets.fromLTRB(8, 8, 8, MediaQuery.of(context).viewInsets.bottom + 8),
-      child: Row(
-        children: [
-          Expanded(child: TextField(
-            controller: _controller,
-            decoration: const InputDecoration(
-              labelText: 'Quick add with AI...',
-              border: OutlineInputBorder(),
+  Widget _buildAiInputField(BuildContext context, bool isAnalyzing) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+          8, 8, 8, MediaQuery.of(context).viewInsets.bottom + 8),
+      child: Material(
+        elevation: 4,
+        borderRadius: BorderRadius.circular(25),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: BorderRadius.circular(25),
+          ),
+          child: TextField(
+            controller: _textController,
+            enabled: !isAnalyzing,
+            decoration: InputDecoration(
+              hintText: isAnalyzing
+                  ? 'Analyzing...'
+                  : 'Log a meal with AI (e.g., "protein shake and a banana")',
+              border: InputBorder.none,
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+              suffixIcon: isAnalyzing
+                  ? const Padding(
+                      padding: EdgeInsets.all(12.0),
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : IconButton(
+                      icon: const Icon(Icons.send),
+                      onPressed: () => _addMealFromText(context),
+                    ),
             ),
-            onSubmitted: (_) => _onAiSubmit(),
-          )),
-          const SizedBox(width: 8),
-          provider.isAnalyzing
-              ? const CircularProgressIndicator()
-              : IconButton(
-                  icon: const Icon(Icons.auto_awesome),
-                  onPressed: _onAiSubmit,
-                ),
-        ],
-      ),
-    );
-  }
-}
-
-class _DailySummaryCard extends StatelessWidget {
-  final NutritionLog? log;
-  final UserProfile? profile;
-  const _DailySummaryCard({required this.log, this.profile});
-
-  @override
-  Widget build(BuildContext context) {
-    final currentLog = log ?? NutritionLog.empty();
-    final targetCalories = profile?.targetCalories ?? 2500.0;
-    final targetProtein = profile?.targetProtein ?? 180.0;
-    final targetCarbs = profile?.targetCarbs ?? 300.0;
-    final targetFat = profile?.targetFat ?? 70.0;
-
-    return Card(
-      margin: const EdgeInsets.fromLTRB(16.0, 8.0, 16.0, 0),
-      child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _buildMacroColumn(
-              context,
-              'Calories',
-              currentLog.totalCalories,
-              targetCalories,
-              Colors.blue,
-              unit: '',
-            ),
-            _buildMacroColumn(
-              context,
-              'Protein',
-              currentLog.totalMacros['protein'] ?? 0,
-              targetProtein,
-              Colors.red,
-            ),
-            _buildMacroColumn(
-              context,
-              'Carbs',
-              currentLog.totalMacros['carbs'] ?? 0,
-              targetCarbs,
-              Colors.orange,
-            ),
-            _buildMacroColumn(
-              context,
-              'Fat',
-              currentLog.totalMacros['fat'] ?? 0,
-              targetFat,
-              Colors.purple,
-            ),
-          ],
+            onSubmitted: (_) => _addMealFromText(context),
+          ),
         ),
       ),
-    );
-  }
-
-  Widget _buildMacroColumn(BuildContext context, String label, double value, double target, Color color, {String unit = 'g'}) {
-    return Column(
-      children: [
-        MacroIndicator(
-          label: label,
-          value: value,
-          target: target,
-          color: color,
-          unit: unit,
-        ),
-        const SizedBox(height: 4),
-        Text(
-          'Goal: ${target.toStringAsFixed(0)}$unit',
-          style: Theme.of(context).textTheme.bodySmall,
-        ),
-      ],
     );
   }
 }

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:myapp/models/workout_data.dart';
+import '../models/workout_data.dart';
 
 class EditWorkoutDayScreen extends StatefulWidget {
   final WorkoutProgram program;
@@ -24,7 +24,8 @@ class _EditWorkoutDayScreenState extends State<EditWorkoutDayScreen> {
   @override
   void initState() {
     super.initState();
-    _program = WorkoutProgram.fromMap(widget.program.toMap())..id = widget.program.id;
+    _program = WorkoutProgram.fromMap(widget.program.toMap())
+      ..id = widget.program.id;
   }
 
   Future<bool> _onWillPop() async {
@@ -33,10 +34,15 @@ class _EditWorkoutDayScreenState extends State<EditWorkoutDayScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Unsaved Changes'),
-        content: const Text('You have unsaved changes. Are you sure you want to leave?'),
+        content: const Text(
+            'You have unsaved changes. Are you sure you want to leave?'),
         actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Discard & Leave')),
+          TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Discard & Leave')),
         ],
       ),
     );
@@ -51,12 +57,13 @@ class _EditWorkoutDayScreenState extends State<EditWorkoutDayScreen> {
       if (mounted) {
         _hasUnsavedChanges = false;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Program Saved!'), backgroundColor: Colors.green),
+          const SnackBar(
+              content: Text('Program Saved!'), backgroundColor: Colors.green),
         );
         Navigator.of(context).pop();
       }
     } catch (e) {
-       if (mounted) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error saving: $e')),
         );
@@ -68,20 +75,23 @@ class _EditWorkoutDayScreenState extends State<EditWorkoutDayScreen> {
     }
   }
 
-
   void _onAddExercise(WorkoutDay day) {
     _showEditExerciseDialog(day: day);
   }
-  
+
   void _onEditExercise(WorkoutDay day, int exerciseIndex) {
     final exercise = day.exercises[exerciseIndex];
-    _showEditExerciseDialog(day: day, exercise: exercise, exerciseIndex: exerciseIndex);
+    _showEditExerciseDialog(
+        day: day, exercise: exercise, exerciseIndex: exerciseIndex);
   }
 
-  void _showEditExerciseDialog({required WorkoutDay day, Exercise? exercise, int? exerciseIndex}) {
+  void _showEditExerciseDialog(
+      {required WorkoutDay day, Exercise? exercise, int? exerciseIndex}) {
     final isEditing = exercise != null;
-    final exerciseNameController = TextEditingController(text: isEditing ? exercise.name : '');
-    final setsRepsController = TextEditingController(text: isEditing ? exercise.programTarget : '');
+    final exerciseNameController =
+        TextEditingController(text: isEditing ? exercise.name : '');
+    final setsRepsController =
+        TextEditingController(text: isEditing ? exercise.programTarget : '');
 
     showDialog(
       context: context,
@@ -90,12 +100,20 @@ class _EditWorkoutDayScreenState extends State<EditWorkoutDayScreen> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(controller: exerciseNameController, decoration: const InputDecoration(labelText: 'Exercise Name'), autofocus: true),
-            TextField(controller: setsRepsController, decoration: const InputDecoration(labelText: 'Sets/Reps Target (e.g., 3x 8-10)')),
+            TextField(
+                controller: exerciseNameController,
+                decoration: const InputDecoration(labelText: 'Exercise Name'),
+                autofocus: true),
+            TextField(
+                controller: setsRepsController,
+                decoration: const InputDecoration(
+                    labelText: 'Sets/Reps Target (e.g., 3x 8-10)')),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel')),
           ElevatedButton(
             onPressed: () {
               final newExerciseName = exerciseNameController.text.trim();
@@ -133,7 +151,8 @@ class _EditWorkoutDayScreenState extends State<EditWorkoutDayScreen> {
               content: TextField(
                 controller: nameController,
                 autofocus: true,
-                decoration: const InputDecoration(labelText: 'Day Name (e.g., "Chest Day")'),
+                decoration: const InputDecoration(
+                    labelText: 'Day Name (e.g., "Chest Day")'),
               ),
               actions: [
                 TextButton(
@@ -157,7 +176,6 @@ class _EditWorkoutDayScreenState extends State<EditWorkoutDayScreen> {
             ));
   }
 
-
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
@@ -168,31 +186,40 @@ class _EditWorkoutDayScreenState extends State<EditWorkoutDayScreen> {
           actions: [
             // NEW: Visible Save Button
             IconButton(
-              icon: _isSaving ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2,)) : const Icon(Icons.save),
+              icon: _isSaving
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ))
+                  : const Icon(Icons.save),
               onPressed: _isSaving ? null : _confirmAndSaveChanges,
               tooltip: 'Save Program',
             )
           ],
         ),
         body: ListView.builder(
-            padding: const EdgeInsets.all(8.0),
-            itemCount: _program.days.length,
-            itemBuilder: (context, index) {
-              final day = _program.days[index];
-              return _WorkoutDayCard(
-                day: day,
-                onAddExercise: () => _onAddExercise(day),
-                onRename: () => _onRenameDay(day),
-                onExerciseEdited: (exerciseIndex) => _onEditExercise(day, exerciseIndex),
-                onExerciseDeleted: (exerciseIndex) {
-                  setState(() {
-                    _hasUnsavedChanges = true;
-                    day.exercises.removeAt(exerciseIndex);
-                  });
-                },
-              );
-            },
-          ),
+          padding: const EdgeInsets.all(8.0),
+          itemCount: _program.days.length,
+          itemBuilder: (context, index) {
+            final day = _program.days[index];
+            return _WorkoutDayCard(
+              day: day,
+              onAddExercise: () => _onAddExercise(day),
+              onRename: () => _onRenameDay(day),
+              onExerciseEdited: (exerciseIndex) =>
+                  _onEditExercise(day, exerciseIndex),
+              onExerciseDeleted: (exerciseIndex) {
+                setState(() {
+                  _hasUnsavedChanges = true;
+                  day.exercises.removeAt(exerciseIndex);
+                });
+              },
+            );
+          },
+        ),
       ),
     );
   }
@@ -218,7 +245,8 @@ class _WorkoutDayCard extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8.0),
       child: ExpansionTile(
-        title: Text(day.dayName, style: const TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(day.dayName,
+            style: const TextStyle(fontWeight: FontWeight.bold)),
         trailing: IconButton(
           icon: const Icon(Icons.drive_file_rename_outline, size: 20),
           onPressed: onRename,
@@ -234,12 +262,14 @@ class _WorkoutDayCard extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.edit_outlined, color: Colors.blueAccent),
+                    icon: const Icon(Icons.edit_outlined,
+                        color: Colors.blueAccent),
                     onPressed: () => onExerciseEdited(i),
                     tooltip: 'Edit Exercise',
                   ),
                   IconButton(
-                    icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                    icon: const Icon(Icons.delete_outline,
+                        color: Colors.redAccent),
                     onPressed: () => onExerciseDeleted(i),
                     tooltip: 'Delete Exercise',
                   ),
@@ -247,7 +277,8 @@ class _WorkoutDayCard extends StatelessWidget {
               ),
             ),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             child: TextButton.icon(
               onPressed: onAddExercise,
               icon: const Icon(Icons.add),

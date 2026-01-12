@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:myapp/models/workout_data.dart'; // Adjust import path as necessary
-import 'package:myapp/screens/workout_logging_screen.dart'; // Adjust import path as necessary
+import '../models/workout_data.dart'; // Adjust import path as necessary// Adjust import path as necessary
+import '../screens/workout_logging_screen_basic.dart';
 
 class WorkoutDayView extends StatelessWidget {
   final WorkoutDay day;
@@ -14,45 +14,46 @@ class WorkoutDayView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(
-            child: ListView.builder(
-              itemCount: day.exercises.length,
-              itemBuilder: (context, index) {
-                final exercise = day.exercises[index];
-                return Card(
-                  margin: const EdgeInsets.symmetric(vertical: 4.0),
-                  child: ListTile(
-                    title: Text(exercise.name),
-                    subtitle: Text('Target: ${exercise.programTarget}'),
-                  ),
-                );
-              },
-            ),
-          ),
-          const SizedBox(height: 16),
-          ElevatedButton(
-            // Inside workout_day_view.dart
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => WorkoutLoggingScreen(
-                    programId: programId,
-                    day:
-                        day, // CORRECT: Pass the 'day' object this widget holds
-                  ),
-                ),
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        if (day.exercises.isEmpty)
+          const Padding(
+            padding: EdgeInsets.all(16.0),
+            child: Text('No exercises for this day yet.'),
+          )
+        else
+          ListView.builder(
+            shrinkWrap: true,
+            physics:
+                const NeverScrollableScrollPhysics(), // Prevent nested scrolling
+            itemCount: day.exercises.length,
+            itemBuilder: (context, index) {
+              final exercise = day.exercises[index];
+              return ListTile(
+                title: Text(exercise.name),
+                subtitle: Text('Target: ${exercise.programTarget}'),
               );
             },
-            child: const Text("Start Today's Workout"),
           ),
-        ],
-      ),
+        const SizedBox(height: 20),
+        ElevatedButton.icon(
+          icon: const Icon(Icons.play_arrow),
+          label: const Text('Start This Workout'),
+          onPressed: () {
+            // UPDATED: Always navigate to the basic logger screen
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => WorkoutLoggingScreenBasic(
+                  programId: programId,
+                  day: day,
+                ),
+              ),
+            );
+          },
+        ),
+      ],
     );
   }
 }

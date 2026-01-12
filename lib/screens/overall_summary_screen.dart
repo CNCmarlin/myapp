@@ -6,17 +6,17 @@ import '../models/meal_data.dart';
 import '../services/firestore_service.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import 'package:myapp/services/auth_service.dart';
+import '../services/auth_service.dart';
 
 class OverallSummaryScreen extends StatefulWidget {
   final DateTime selectedDate;
   const OverallSummaryScreen({super.key, required this.selectedDate});
 
   @override
-  _OverallSummaryScreenState createState() => _OverallSummaryScreenState();
+  OverallSummaryScreenState createState() => OverallSummaryScreenState();
 }
 
-class _OverallSummaryScreenState extends State<OverallSummaryScreen> {
+class OverallSummaryScreenState extends State<OverallSummaryScreen> {
   final FirestoreService _firestoreService = FirestoreService();
   bool _isLoading = true;
   Workout? _workoutLog;
@@ -26,28 +26,30 @@ class _OverallSummaryScreenState extends State<OverallSummaryScreen> {
   void initState() {
     super.initState();
     _fetchDailyData();
- }
+  }
 
   Future<void> _fetchDailyData() async {
-  setState(() => _isLoading = true);
+    setState(() => _isLoading = true);
 
-  final userId = context.read<AuthService>().currentUser?.uid;
-  if (userId == null) {
-    if (mounted) setState(() => _isLoading = false);
-    return;
-  }
-  
-  final workout = await _firestoreService.getWorkoutLogByDate(userId, widget.selectedDate);
-  final nutrition = await _firestoreService.getNutritionLog(userId, widget.selectedDate);
+    final userId = context.read<AuthService>().currentUser?.uid;
+    if (userId == null) {
+      if (mounted) setState(() => _isLoading = false);
+      return;
+    }
 
-  if (mounted) {
-    setState(() {
-      _workoutLog = workout;
-      _nutritionLog = nutrition;
-      _isLoading = false;
-    });
+    final workout = await _firestoreService.getWorkoutLogByDate(
+        userId, widget.selectedDate);
+    final nutrition =
+        await _firestoreService.getNutritionLog(userId, widget.selectedDate);
+
+    if (mounted) {
+      setState(() {
+        _workoutLog = workout;
+        _nutritionLog = nutrition;
+        _isLoading = false;
+      });
+    }
   }
-}
 
   @override
   Widget build(BuildContext context) {
@@ -58,12 +60,13 @@ class _OverallSummaryScreenState extends State<OverallSummaryScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
- padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.all(16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Summary for: ${DateFormat('EEEE, MMMM d, yyyy').format(widget.selectedDate)}', style: Theme.of(context).textTheme.titleLarge,
+                    'Summary for: ${DateFormat('EEEE, MMMM d, yyyy').format(widget.selectedDate)}',
+                    style: Theme.of(context).textTheme.titleLarge,
                   ),
                   const SizedBox(height: 16),
 
@@ -75,36 +78,39 @@ class _OverallSummaryScreenState extends State<OverallSummaryScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
- Text('Key Daily Metrics',
- style: Theme.of(context).textTheme.titleLarge!),
+                          Text('Key Daily Metrics',
+                              style: Theme.of(context).textTheme.titleLarge!),
                           const SizedBox(height: 8),
                           Text(
- 'Workout Duration: ${_workoutLog?.duration ?? 'N/A'}'),
+                              'Workout Duration: ${_workoutLog?.duration ?? 'N/A'}'),
                           Text(
- 'Calories Burned: ${_workoutLog?.caloriesBurned.toStringAsFixed(0) ?? 'N/A'} kcal'),
+                              'Calories Burned: ${_workoutLog?.caloriesBurned.toStringAsFixed(0) ?? 'N/A'} kcal'),
                           const SizedBox(height: 8),
                           Text(
- 'Total Calories Consumed: ${_nutritionLog?.totalCalories.toStringAsFixed(0) ?? 'N/A'} kcal'),
+                              'Total Calories Consumed: ${_nutritionLog?.totalCalories.toStringAsFixed(0) ?? 'N/A'} kcal'),
                           Text(
- 'Protein Intake: ${_nutritionLog?.totalMacros['protein']?.toStringAsFixed(0) ?? 'N/A'} g'),
+                              'Protein Intake: ${_nutritionLog?.totalMacros['protein']?.toStringAsFixed(0) ?? 'N/A'} g'),
                           Text(
- 'Carbs Intake: ${_nutritionLog?.totalMacros['carbs']?.toStringAsFixed(0) ?? 'N/A'} g'),
+                              'Carbs Intake: ${_nutritionLog?.totalMacros['carbs']?.toStringAsFixed(0) ?? 'N/A'} g'),
                           Text(
- 'Fat Intake: ${_nutritionLog?.totalMacros['fat']?.toStringAsFixed(0) ?? 'N/A'} g'),
+                              'Fat Intake: ${_nutritionLog?.totalMacros['fat']?.toStringAsFixed(0) ?? 'N/A'} g'),
                           Text(
- 'Water Intake: ${_nutritionLog?.waterIntake.toStringAsFixed(0) ?? 'N/A'} oz'),
+                              'Water Intake: ${_nutritionLog?.waterIntake.toStringAsFixed(0) ?? 'N/A'} oz'),
                           Text(
                               'Low-Carb Day: ${_nutritionLog?.isLowCarbDay == true ? 'Yes' : _nutritionLog?.isLowCarbDay == false ? 'No' : 'N/A'}'),
                           Text(
                               'Hunger Rating: ${_nutritionLog?.hungerRating?.toString() ?? 'N/A'}'),
- ],
+                        ],
                       ),
                     ),
                   ),
                   const SizedBox(height: 24),
 
                   // Integrated Performance & Nutrition Insights (Placeholder)
-                  Text('Integrated Performance & Nutrition Insights', style: Theme.of(context).textTheme.titleLarge!,),
+                  Text(
+                    'Integrated Performance & Nutrition Insights',
+                    style: Theme.of(context).textTheme.titleLarge!,
+                  ),
                   const SizedBox(height: 8),
                   const Text(
                     'Analyze correlations between workout performance and nutrition intake.',

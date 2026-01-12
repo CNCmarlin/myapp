@@ -1,5 +1,7 @@
+// lib/screens/manual_meal_entry_screen.dart
+
 import 'package:flutter/material.dart';
-import 'package:myapp/models/meal_data.dart';
+import '../models/meal_data.dart';
 
 class ManualMealEntryScreen extends StatefulWidget {
   const ManualMealEntryScreen({super.key});
@@ -15,6 +17,7 @@ class _ManualMealEntryScreenState extends State<ManualMealEntryScreen> {
   final _proteinController = TextEditingController();
   final _carbsController = TextEditingController();
   final _fatController = TextEditingController();
+  final _notesController = TextEditingController(); // NEW CONTROLLER
 
   @override
   void dispose() {
@@ -23,6 +26,7 @@ class _ManualMealEntryScreenState extends State<ManualMealEntryScreen> {
     _proteinController.dispose();
     _carbsController.dispose();
     _fatController.dispose();
+    _notesController.dispose(); // DISPOSE CONTROLLER
     super.dispose();
   }
 
@@ -34,6 +38,7 @@ class _ManualMealEntryScreenState extends State<ManualMealEntryScreen> {
         protein: double.tryParse(_proteinController.text) ?? 0.0,
         carbs: double.tryParse(_carbsController.text) ?? 0.0,
         fat: double.tryParse(_fatController.text) ?? 0.0,
+        notes: _notesController.text.trim(), // ADD NOTES
       );
       Navigator.of(context).pop(foodItem);
     }
@@ -53,13 +58,15 @@ class _ManualMealEntryScreenState extends State<ManualMealEntryScreen> {
             TextFormField(
               controller: _nameController,
               decoration: const InputDecoration(labelText: 'Food Name'),
-              validator: (value) => value!.isEmpty ? 'Please enter a name' : null,
+              validator: (value) =>
+                  value!.isEmpty ? 'Please enter a name' : null,
             ),
             TextFormField(
               controller: _caloriesController,
               decoration: const InputDecoration(labelText: 'Calories'),
               keyboardType: TextInputType.number,
-              validator: (value) => value!.isEmpty ? 'Please enter calories' : null,
+              validator: (value) =>
+                  value!.isEmpty ? 'Please enter calories' : null,
             ),
             Row(
               children: [
@@ -87,6 +94,17 @@ class _ManualMealEntryScreenState extends State<ManualMealEntryScreen> {
                   ),
                 ),
               ],
+            ),
+            const SizedBox(height: 16),
+            // NEW NOTES TEXTFIELD
+            TextFormField(
+              controller: _notesController,
+              decoration: const InputDecoration(
+                labelText: 'Notes (Optional)',
+                hintText: 'e.g., felt bloated after, very tasty...',
+              ),
+              textCapitalization: TextCapitalization.sentences,
+              maxLines: 2,
             ),
             const SizedBox(height: 24),
             ElevatedButton(

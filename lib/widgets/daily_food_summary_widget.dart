@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:myapp/models/meal_data.dart';
+import '../models/meal_data.dart';
 
 class DailyFoodSummaryWidget extends StatelessWidget {
   final List<Meal> meals;

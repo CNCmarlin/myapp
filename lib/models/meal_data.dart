@@ -7,6 +7,7 @@ class FoodItem {
   double carbs;
   double fat;
   double calories;
+  String? notes;
 
   FoodItem({
     required this.name,
@@ -14,6 +15,7 @@ class FoodItem {
     required this.carbs,
     required this.fat,
     required this.calories,
+    this.notes,
   });
 
   factory FoodItem.fromMap(Map<String, dynamic> map) {
@@ -23,13 +25,18 @@ class FoodItem {
       carbs: (map['carbs'] as num?)?.toDouble() ?? 0.0,
       fat: (map['fat'] as num?)?.toDouble() ?? 0.0,
       calories: (map['calories'] as num?)?.toDouble() ?? 0.0,
+      notes: map['notes'], // UPDATED FACTORY
     );
   }
 
   Map<String, dynamic> toMap() {
     return {
-      'name': name, 'protein': protein, 'carbs': carbs,
-      'fat': fat, 'calories': calories,
+      'name': name,
+      'protein': protein,
+      'carbs': carbs,
+      'fat': fat,
+      'calories': calories,
+      'notes': notes, // UPDATED TO_MAP
     };
   }
 }
@@ -48,21 +55,6 @@ class Meal {
     required this.carbs, required this.fat, required this.calories,
     this.aiInsight,
   });
-
-  // ADDED BACK for compatibility with AIService
-  factory Meal.fromCloudFunction(Map<String, dynamic> data) {
-    dynamic deepCast(dynamic value) {
-      if (value is Map) {
-        return value.map((key, val) => MapEntry(key.toString(), deepCast(val)));
-      }
-      if (value is List) {
-        return value.map((e) => deepCast(e)).toList();
-      }
-      return value;
-    }
-    final safeData = deepCast(data);
-    return Meal.fromMap(safeData as Map<String, dynamic>);
-  }
 
   factory Meal.fromMap(Map<String, dynamic> map) {
     return Meal(

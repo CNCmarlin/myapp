@@ -1,17 +1,21 @@
+// lib/providers/nutrition_log_provider.dart
+
 import 'package:flutter/material.dart';
 import '../models/meal_data.dart';
 import '../models/user_profile.dart';
 import '../services/ai_service.dart';
+import '../services/auth_service.dart'; // NEW IMPORT
 import '../services/firestore_service.dart';
 import '../services/meal_insight_service.dart';
+import '../utils/nutrition_utils.dart';
 
 class NutritionLogProvider extends ChangeNotifier {
   final String userId;
-  final DateTime date;
-  final UserProfile? userProfile;
+  DateTime _date;
+  UserProfile? userProfile;
 
   final FirestoreService _firestoreService = FirestoreService();
-  final AIService _aiService = AIService();
+  late final AIService _aiService; // UPDATED
   final MealInsightService _insightService = MealInsightService();
 
   NutritionLog? _log;
@@ -23,15 +27,36 @@ class NutritionLogProvider extends ChangeNotifier {
   bool _isAnalyzing = false;
   bool get isAnalyzing => _isAnalyzing;
 
-  NutritionLogProvider({required this.userId, required this.date, this.userProfile}) {
+  NutritionLogProvider({
+    required this.userId,
+    required DateTime date,
+    required AuthService authService, // NEW DEPENDENCY
+    this.userProfile,
+  }) : _date = date {
+    _aiService = AIService(authService: authService); // INITIALIZE AIService
     _loadLogForDate();
   }
 
+  void updateDependencies(DateTime newDate, UserProfile? newProfile) {
+    bool needsReload = false;
+    if (_date.year != newDate.year ||
+        _date.month != newDate.month ||
+        _date.day != newDate.day) {
+      _date = newDate;
+      needsReload = true;
+    }
+    userProfile = newProfile;
+    if (needsReload) {
+      _loadLogForDate();
+    }
+  }
+
+  // ... rest of the file remains the same ...
   Future<void> _loadLogForDate() async {
     _isLoading = true;
     notifyListeners();
-    _log = await _firestoreService.getNutritionLog(userId, date);
-    _log ??= NutritionLog.empty(date: date);
+    _log = await _firestoreService.getNutritionLog(userId, _date);
+    _log ??= NutritionLog.empty(date: _date);
     _isLoading = false;
     notifyListeners();
   }
@@ -42,7 +67,6 @@ class NutritionLogProvider extends ChangeNotifier {
     }
   }
 
-  // --- NEW: Manual Food Entry Methods ---
   void addFoodToMeal(String mealType, FoodItem foodItem) {
     if (_log == null) return;
     if (!_log!.meals.containsKey(mealType)) {
@@ -62,7 +86,6 @@ class NutritionLogProvider extends ChangeNotifier {
     _saveLog();
   }
 
-  // REVISED AI Method: Now safely maps meal names
   Future<bool> addMealFromText(String text) async {
     if (text.trim().isEmpty) return false;
     _isAnalyzing = true;
@@ -71,23 +94,15 @@ class NutritionLogProvider extends ChangeNotifier {
     final meal = await _aiService.getMealFromText(text);
 
     if (meal != null) {
-      // Safely determine the meal category
-      final mealType = _getMealTypeFromName(meal.mealName);
-
-      // Add individual foods to the correct category
+      final mealType = getMealTypeFromName(meal.mealName);
       for (var food in meal.foods) {
         addFoodToMeal(mealType, food);
       }
-      
-      // Still store the original AI meal object for its insight
       _log?.aiGeneratedMeals.add(meal);
-      
-      // Recalculate, notify, and save
       _log?.recalculateTotals();
       notifyListeners();
       _saveLog();
-      _generateAndSaveInsight(meal); // This can stay as is
-      
+      _generateAndSaveInsight(meal);
       _isAnalyzing = false;
       notifyListeners();
       return true;
@@ -97,31 +112,23 @@ class NutritionLogProvider extends ChangeNotifier {
       return false;
     }
   }
-  
-  // Helper function to categorize AI meals
-  String _getMealTypeFromName(String aiMealName) {
-    final lowerCaseName = aiMealName.toLowerCase();
-    if (lowerCaseName.contains('breakfast')) return 'Breakfast';
-    if (lowerCaseName.contains('lunch')) return 'Lunch';
-    if (lowerCaseName.contains('dinner')) return 'Dinner';
-    return 'Snacks'; // Default case
-  }
 
   String? getInsightForMeal(String mealType) {
-    // Find the last AI-generated meal that maps to this meal type.
     final relevantAiMeal = _log?.aiGeneratedMeals.lastWhere(
-      (meal) => _getMealTypeFromName(meal.mealName) == mealType,
-      orElse: () => Meal(mealName: '', foods: [], protein: 0, carbs: 0, fat: 0, calories: 0), // Return a dummy meal if not found
+      (meal) => getMealTypeFromName(meal.mealName) == mealType,
+      orElse: () => Meal(
+          mealName: '',
+          foods: [],
+          protein: 0,
+          carbs: 0,
+          fat: 0,
+          calories: 0),
     );
-
-    if (relevantAiMeal != null && (relevantAiMeal.aiInsight?.isNotEmpty ?? false)) {
-      return relevantAiMeal.aiInsight;
-    }
-    return null;
+    return relevantAiMeal?.aiInsight;
   }
 
   Future<void> _generateAndSaveInsight(Meal meal) async {
-     if (userProfile != null) {
+    if (userProfile != null) {
       final insightText = await _insightService.generateInsight(
         userProfile: userProfile!,
         meal: meal,

@@ -1,9 +1,10 @@
+// lib/providers/user_profile_provider.dart
+
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:myapp/models/user_profile.dart';
-import 'package:myapp/models/workout_data.dart';
-import 'package:myapp/services/auth_service.dart';
-import 'package:myapp/services/firestore_service.dart';
+import '../models/user_profile.dart';
+import '../services/auth_service.dart';
+import '../services/firestore_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 enum UserProfileStatus { uninitialized, loading, loaded, error }
@@ -14,15 +15,15 @@ class UserProfileProvider with ChangeNotifier {
   late final StreamSubscription<User?> _authStateSubscription;
 
   UserProfile? _userProfile;
-  List<WorkoutProgram> _availablePrograms = [];
+  UserProfile? _savedProfile;
   UserProfileStatus _status = UserProfileStatus.uninitialized;
   String? _errorMessage;
+  bool hasUnsavedChanges = false;
 
   bool _isSaving = false;
 
   // Getters
   UserProfile? get userProfile => _userProfile;
-  List<WorkoutProgram> get availablePrograms => _availablePrograms;
   UserProfileStatus get status => _status;
   bool get isLoading => _status == UserProfileStatus.loading;
   bool get isSaving => _isSaving;
@@ -37,17 +38,17 @@ class UserProfileProvider with ChangeNotifier {
         _loadInitialData(user.uid);
       } else {
         _userProfile = null;
-        _availablePrograms = [];
+        _savedProfile = null;
         _status = UserProfileStatus.uninitialized;
         notifyListeners();
       }
     });
-  } // END OF THE CONSTRUCTOR
+  }
 
-  // PLACE THE METHOD HERE, AFTER THE CONSTRUCTOR
   void setInitialProfile(UserProfile profile) {
     if (_status != UserProfileStatus.loading) {
-      _userProfile = profile;
+      _userProfile = profile; 
+       _savedProfile = profile.copyWith();
       notifyListeners();
     }
   }
@@ -57,15 +58,9 @@ class UserProfileProvider with ChangeNotifier {
     _status = UserProfileStatus.loading;
     notifyListeners();
     try {
-      final profileFuture = _firestoreService.getUserProfile(userId);
-      // CORRECTED: Using the verified method name from your file.
-      final programsFuture = _firestoreService.getAllWorkoutPrograms(userId);
-
-      final results = await Future.wait([profileFuture, programsFuture]);
-
-      _userProfile = results[0] as UserProfile?;
-      _availablePrograms = results[1] as List<WorkoutProgram>;
-
+      _userProfile = await _firestoreService.getUserProfile(userId);
+      _savedProfile = _userProfile?.copyWith(); 
+      hasUnsavedChanges = false;
       _status = UserProfileStatus.loaded;
     } catch (e) {
       _errorMessage = 'Error fetching user data: $e';
@@ -81,13 +76,20 @@ class UserProfileProvider with ChangeNotifier {
     }
   }
 
-  Future<void> updateActiveProgram(String newProgramId) async {
+  Future<void> updateActiveProgram(String? newProgramId) async {
     final userId = _authService.currentUser?.uid;
     if (_userProfile == null || userId == null) return;
 
     _userProfile = _userProfile!.copyWith(activeProgramId: newProgramId);
-    notifyListeners(); // Optimistic update for the UI
+    notifyListeners(); // Optimistic update
     await _firestoreService.saveUserProfile(userId, _userProfile!);
+  }
+
+// NEW: Method to discard changes
+  void revertChanges() {
+    _userProfile = _savedProfile?.copyWith();
+    hasUnsavedChanges = false;
+    notifyListeners();
   }
 
   void updateGoals({
@@ -101,14 +103,15 @@ class UserProfileProvider with ChangeNotifier {
   }) {
     if (_userProfile == null) return;
     _userProfile = _userProfile!.copyWith(
-      primaryGoal: primaryGoal,
-      activityLevel: activityLevel,
-      activeProgramId: activeProgramId,
-      targetCalories: targetCalories,
-      targetProtein: targetProtein,
-      targetCarbs: targetCarbs,
-      targetFat: targetFat,
+      primaryGoal: primaryGoal ?? _userProfile!.primaryGoal,
+      activityLevel: activityLevel ?? _userProfile!.activityLevel,
+      activeProgramId: activeProgramId ?? _userProfile!.activeProgramId,
+      targetCalories: targetCalories ?? _userProfile!.targetCalories,
+      targetProtein: targetProtein ?? _userProfile!.targetProtein,
+      targetCarbs: targetCarbs ?? _userProfile!.targetCarbs,
+      targetFat: targetFat ?? _userProfile!.targetFat,
     );
+    hasUnsavedChanges = true;
     notifyListeners();
   }
 
@@ -119,7 +122,7 @@ class UserProfileProvider with ChangeNotifier {
     Map<String, dynamic>? height,
     double? bodyFatPercentage,
     Map<String, dynamic>? measurements,
-    String? fitnessProficiency, // NEW PARAMETER
+    String? fitnessProficiency,
   }) {
     if (_userProfile == null) return;
     _userProfile = _userProfile!.copyWith(
@@ -129,8 +132,9 @@ class UserProfileProvider with ChangeNotifier {
       height: height,
       bodyFatPercentage: bodyFatPercentage,
       measurements: measurements,
-      fitnessProficiency: fitnessProficiency, // NEW
+      fitnessProficiency: fitnessProficiency,
     );
+    hasUnsavedChanges = true;
     notifyListeners();
   }
 
@@ -139,80 +143,21 @@ class UserProfileProvider with ChangeNotifier {
     if (userId == null || _userProfile == null) return false;
 
     _isSaving = true;
-    notifyListeners(); // Notify listeners to show loading indicator on the button
+    notifyListeners();
 
     try {
       await _firestoreService.saveUserProfile(userId, _userProfile!);
+      _savedProfile = _userProfile?.copyWith(); // Update the cache on successful save
+      hasUnsavedChanges = false;
       return true;
     } catch (e) {
       _errorMessage = "Failed to save profile: $e";
       return false;
     } finally {
       _isSaving = false;
-      notifyListeners(); // Notify listeners to hide loading indicator
-    }
-  }
-
-  Future<void> renameWorkoutProgram(String programId, String newName) async {
-    final userId = _authService.currentUser?.uid;
-    if (userId == null) return;
-
-    try {
-      await _firestoreService.updateProgramName(userId, programId, newName);
-      // Update local state for immediate UI feedback
-      final index = _availablePrograms.indexWhere((p) => p.id == programId);
-      if (index != -1) {
-        _availablePrograms[index].name = newName;
-        notifyListeners();
-      }
-    } catch (e) {
-      // Optionally handle and expose the error
-      _errorMessage = 'Error renaming program: $e';
       notifyListeners();
     }
   }
-
-  Future<void> deleteWorkoutProgram(String programId) async {
-    final userId = _authService.currentUser?.uid;
-    if (userId == null) return;
-
-    try {
-      await _firestoreService.deleteWorkoutProgram(userId, programId);
-      // Update local state
-      _availablePrograms.removeWhere((p) => p.id == programId);
-
-      // If the deleted program was the active one, clear it
-      if (_userProfile?.activeProgramId == programId) {
-        _userProfile = _userProfile?.copyWith(activeProgramId: null);
-        // We need to save this change on the user's profile document
-        await saveProfileChanges();
-      }
-
-      notifyListeners();
-    } catch (e) {
-      _errorMessage = 'Error deleting program: $e';
-      notifyListeners();
-    }
-  }
-
-  Future<void> updateWorkoutProgram(WorkoutProgram program) async {
-        final userId = _authService.currentUser?.uid;
-        if (userId == null) return;
-
-        try {
-          await _firestoreService.updateWorkoutProgram(userId, program);
-          // Update the program in the local list for immediate UI feedback
-          final index =
-              _availablePrograms.indexWhere((p) => p.id == program.id);
-          if (index != -1) {
-            _availablePrograms[index] = program;
-            notifyListeners();
-          }
-        } catch (e) {
-          _errorMessage = 'Error updating program: $e';
-          notifyListeners();
-        }
-      }
 
   @override
   void dispose() {

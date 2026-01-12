@@ -11,11 +11,7 @@ class WorkoutProgram {
     required this.id,
     required this.name,
     required this.days,
-
-    
   });
-
-   // Inside class WorkoutProgram...
   
   WorkoutProgram copyWith({
     String? id,
@@ -27,23 +23,6 @@ class WorkoutProgram {
       name: name ?? this.name,
       days: days ?? this.days,
     );
-  }
-
-  // NEW: A robust factory constructor to handle data from Cloud Functions
-  factory WorkoutProgram.fromCloudFunction(Map<String, dynamic> data) {
-    // A safe, recursive function to deep-cast maps
-    dynamic deepCast(dynamic value) {
-      if (value is Map) {
-        return value.map((key, val) => MapEntry(key.toString(), deepCast(val)));
-      }
-      if (value is List) {
-        return value.map((e) => deepCast(e)).toList();
-      }
-      return value;
-    }
-    
-    final safeData = deepCast(data);
-    return WorkoutProgram.fromMap(safeData as Map<String, dynamic>);
   }
 
   factory WorkoutProgram.fromMap(Map<String, dynamic> map) {
@@ -141,7 +120,7 @@ class Workout {
     return {
       'id': id,
       'name': name, // <-- FIELD ADDED
-      'date': date.toIso8601String(),
+      'date': date,
       'startTime': startTime.toIso8601String(),
       'endTime': endTime.toIso8601String(),
       'duration': duration,
@@ -175,7 +154,7 @@ class Exercise {
               ?.map((s) => ExerciseSet.fromMap(s))
               .toList() ??
           [],
-      notes: map['notes'],
+      notes: map['notes'], // UPDATED FACTORY
     );
   }
 
@@ -185,10 +164,11 @@ class Exercise {
       'status': status,
       'programTarget': programTarget,
       'sets': sets.map((s) => s.toMap()).toList(),
-      'notes': notes,
+      'notes': notes, // UPDATED TO_MAP
     };
   }
 }
+
 
 class ExerciseSet {
   String id;

@@ -1,6 +1,7 @@
 import 'package:cloud_functions/cloud_functions.dart';
-import 'package:myapp/models/meal_data.dart';
-import 'package:myapp/models/user_profile.dart';
+import 'package:flutter/foundation.dart';
+import '../models/meal_data.dart';
+import '../models/user_profile.dart';
 
 class MealInsightService {
   final FirebaseFunctions _functions = FirebaseFunctions.instance;
@@ -17,7 +18,9 @@ class MealInsightService {
       });
       return result.data['insightText'] as String?;
     } catch (e) {
-      print('Error calling generateMealInsight function: $e');
+      if (kDebugMode) {
+        print('Error calling generateMealInsight function: $e');
+      }
       return null;
     }
   }

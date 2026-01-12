@@ -1,71 +1,127 @@
-import 'dart:async'; // Import for StreamSubscription
+// lib/providers/insights_provider.dart
+
+import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:myapp/models/insight_data.dart';
-import 'package:myapp/services/auth_service.dart';
-import 'package:myapp/services/firestore_service.dart'; // Import FirestoreService
-import 'package:myapp/services/insights_service.dart';
+import '../models/insight_data.dart';
+import '../services/auth_service.dart';
+import '../services/firestore_service.dart';
+import '../services/insights_service.dart';
+
+// Enum to track which specific insight is being generated
+enum InsightGenerationType { none, workout, nutrition, summary }
 
 class InsightsProvider with ChangeNotifier {
   final AuthService _authService;
-  final FirestoreService _firestoreService; // Use our service layer
+  final FirestoreService _firestoreService;
   final InsightsService _insightsService = InsightsService();
-  
-  StreamSubscription? _insightsSubscription; // To manage the real-time listener
 
-  List<Insight> _insights = [];
+  StreamSubscription? _insightsSubscription;
+
+  List<Insight> _allInsights = [];
   bool _isLoading = false;
-  bool _isGenerating = false;
+  // NEW: State for on-demand generation
+  InsightGenerationType _generatingType = InsightGenerationType.none;
 
-  List<Insight> get insights => _insights;
+  List<Insight> get allInsights => _allInsights;
   bool get isLoading => _isLoading;
-  bool get isGenerating => _isGenerating;
+  InsightGenerationType get generatingType => _generatingType;
+
+  // Filtered getters for the UI tabs
+  List<Insight> get workoutInsights => _allInsights
+      .where((i) => i.insightType == InsightType.performanceTrend)
+      .toList();
+
+  List<Insight> get nutritionInsights => _allInsights
+      .where((i) => i.insightType == InsightType.nutritionCorrelation)
+      .toList();
+
+  List<Insight> get summaryInsights => _allInsights
+      .where((i) =>
+          i.insightType == InsightType.milestone ||
+          i.insightType == InsightType.weeklySummary)
+      .toList();
 
   InsightsProvider({
     required AuthService authService,
-    required FirestoreService firestoreService, // Inject the service
+    required FirestoreService firestoreService,
   })  : _authService = authService,
         _firestoreService = firestoreService {
-    _subscribeToInsights(); // Call the new subscription method
+    _subscribeToInsights();
   }
 
-  // NEW: Real-time subscription method
   void _subscribeToInsights() {
     final userId = _authService.currentUser?.uid;
     if (userId == null) return;
 
     _isLoading = true;
     notifyListeners();
-
-    // Cancel any existing subscription to prevent memory leaks
     _insightsSubscription?.cancel();
-    
-    // Use the secure, centralized method from FirestoreService
-    _insightsSubscription = _firestoreService.getInsightsStream(userId).listen((insightsData) {
-      _insights = insightsData;
+
+    _insightsSubscription =
+        _firestoreService.getInsightsStream(userId).listen((insightsData) {
+           // --- DEBUG LOGGING ---
+      if (kDebugMode) {
+        print('[DEBUG] InsightsProvider stream updated. Received ${insightsData.length} insights.');
+      }
+      // --- END DEBUG LOGGING ---
+      _allInsights = insightsData;
       _isLoading = false;
       notifyListeners();
     }, onError: (error) {
-      print("Error in insights stream: $error");
+      if (kDebugMode) {
+        print("Error in insights stream: $error");
+      }
       _isLoading = false;
-      _insights = [];
+      _allInsights = [];
       notifyListeners();
     });
   }
 
-  Future<void> generateNewInsight() async {
-    _isGenerating = true;
+   Future<void> generateNewWorkoutInsight(BuildContext context) async {
+    _generatingType = InsightGenerationType.workout;
     notifyListeners();
 
-    await _insightsService.generateNewWeeklyInsight();
-    
-    // We no longer need to manually fetch. The stream will update automatically.
-    // await fetchInsights(); 
+    final result = await _insightsService.generateWorkoutInsight();
+    if (result.startsWith('Error:') && context.mounted) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(result)));
+    }
 
-    _isGenerating = false;
+    _generatingType = InsightGenerationType.none;
     notifyListeners();
   }
 
-  // Clean up the subscription when the provider is disposed
+  // UPDATED: Now accepts a BuildContext and handles errors
+  Future<void> generateNewNutritionInsight(BuildContext context) async {
+    _generatingType = InsightGenerationType.nutrition;
+    notifyListeners();
+
+    final result = await _insightsService.generateNutritionInsight();
+    if (result.startsWith('Error:') && context.mounted) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(result)));
+    }
+
+    _generatingType = InsightGenerationType.none;
+    notifyListeners();
+  }
+
+  // UPDATED: Now accepts a BuildContext and handles errors
+  Future<void> generateNewSummaryInsight(BuildContext context, {bool isMonthly = false}) async {
+    _generatingType = InsightGenerationType.summary;
+    notifyListeners();
+
+    final result = await _insightsService.generateSummaryInsight(isMonthly: isMonthly);
+    if (result.startsWith('Error:') && context.mounted) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(result)));
+    }
+
+    _generatingType = InsightGenerationType.none;
+    notifyListeners();
+  }
+
   @override
   void dispose() {
     _insightsSubscription?.cancel();

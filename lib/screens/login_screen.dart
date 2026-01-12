@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:myapp/services/auth_service.dart'; // Adjust the import based on your project structure
+import '../services/auth_service.dart'; // Adjust the import based on your project structure
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});

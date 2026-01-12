@@ -1,7 +1,9 @@
+// lib/screens/program_management_screen.dart
+
 import 'package:flutter/material.dart';
-import 'package:myapp/models/workout_data.dart';
-import 'package:myapp/providers/user_profile_provider.dart';
-import 'package:myapp/screens/edit_workout_day_screen.dart';
+import '../models/workout_data.dart';
+import '../providers/workout_provider.dart'; // UPDATED IMPORT
+import '../screens/edit_workout_day_screen.dart';
 import 'package:provider/provider.dart';
 
 class ProgramManagementScreen extends StatelessWidget {
@@ -9,10 +11,10 @@ class ProgramManagementScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Consume the provider to get the list of programs
-    final userProfileProvider = context.watch<UserProfileProvider>();
-    final workoutPrograms = userProfileProvider.availablePrograms;
-    final isLoading = userProfileProvider.isLoading;
+    // Consume the NEW WorkoutProvider
+    final workoutProvider = context.watch<WorkoutProvider>();
+    final workoutPrograms = workoutProvider.programs;
+    final isLoading = workoutProvider.isLoading;
 
     return Scaffold(
       appBar: AppBar(
@@ -61,8 +63,9 @@ class _ProgramCard extends StatelessWidget {
               onPressed: () {
                 final newName = textController.text.trim();
                 if (newName.isNotEmpty) {
+                  // Use the NEW WorkoutProvider to perform the action
                   context
-                      .read<UserProfileProvider>()
+                      .read<WorkoutProvider>()
                       .renameWorkoutProgram(program.id, newName);
                   Navigator.of(dialogContext).pop();
                 }
@@ -91,8 +94,9 @@ class _ProgramCard extends StatelessWidget {
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
               onPressed: () {
+                // Use the NEW WorkoutProvider to perform the action
                 context
-                    .read<UserProfileProvider>()
+                    .read<WorkoutProvider>()
                     .deleteWorkoutProgram(program.id);
                 Navigator.of(dialogContext).pop();
               },
@@ -144,25 +148,23 @@ class _ProgramCard extends StatelessWidget {
                   ElevatedButton.icon(
                     icon: const Icon(Icons.settings_outlined),
                     label: const Text('Edit Days & Exercises'),
-                    // In _ProgramCard -> build() -> ElevatedButton.icon
                     onPressed: () {
-                      // We no longer await a result here.
                       Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (context) => EditWorkoutDayScreen(
                             program: program,
-                            // Pass the provider's update method as the onSave callback.
                             onSave: (updatedProgram) async {
+                              // Use the NEW WorkoutProvider to perform the action
                               await context
-                                  .read<UserProfileProvider>()
+                                  .read<WorkoutProvider>()
                                   .updateWorkoutProgram(updatedProgram);
                             },
                           ),
                         ),
                       ).then((_) {
-                        // Refresh data when returning, in case names changed etc.
-                        context.read<UserProfileProvider>().refreshData();
+                        // Refresh programs when returning
+                        context.read<WorkoutProvider>().refreshPrograms();
                       });
                     },
                   ),

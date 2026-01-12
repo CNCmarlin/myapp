@@ -1,6 +1,8 @@
+// lib/screens/dashboard_screen.dart
+
 import 'package:flutter/material.dart';
-import 'package:myapp/models/chat_message.dart';
-import 'package:myapp/providers/chat_provider.dart';
+import '../models/chat_message.dart';
+import '../providers/chat_provider.dart';
 import 'package:provider/provider.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -37,7 +39,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Expanded(
             child: Consumer<ChatProvider>(
               builder: (context, chatProvider, child) {
-                // This callback schedules the scroll to happen after the build is complete.
                 WidgetsBinding.instance.addPostFrameCallback((_) {
                   if (_scrollController.hasClients) {
                     _scrollController.animateTo(0,
@@ -47,21 +48,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 });
 
                 if (chatProvider.messages.isEmpty && !chatProvider.isLoading) {
-                  return const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(24.0),
-                      child: Text(
-                        'Ask me to create a workout program!\n\n(e.g., "Create a 3-day full body strength plan for me")',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 16, color: Colors.grey),
-                      ),
-                    ),
-                  );
+                  // UPDATED: New welcome message and suggestion chips
+                  return _buildWelcomeMessage();
                 }
                 return ListView.builder(
                   controller: _scrollController,
                   padding: const EdgeInsets.all(8.0),
-                  reverse: true, // This keeps the list scrolled to the bottom
+                  reverse: true,
                   itemCount: chatProvider.messages.length,
                   itemBuilder: (context, index) {
                     final message = chatProvider.messages[index];
@@ -71,7 +64,50 @@ class _DashboardScreenState extends State<DashboardScreen> {
               },
             ),
           ),
-          _buildInputBar(),
+          _buildAiInputField(), // UPDATED to use new input bar
+        ],
+      ),
+    );
+  }
+  
+  // NEW: Extracted welcome message widget
+  Widget _buildWelcomeMessage() {
+    return Padding(
+      padding: const EdgeInsets.all(24.0),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Text(
+            'Your AI Fitness Coach',
+            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Ask me anything about fitness, nutrition, or ask me to create a workout program for you!',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 16, color: Colors.grey),
+          ),
+          const SizedBox(height: 24),
+          Wrap(
+            spacing: 8.0,
+            runSpacing: 8.0,
+            alignment: WrapAlignment.center,
+            children: [
+              ActionChip(
+                label: const Text('Create a workout'),
+                onPressed: () => context.read<ChatProvider>().sendMessage('Create a 4-day workout plan for me'),
+              ),
+              ActionChip(
+                label: const Text('Protein for muscle building?'),
+                onPressed: () => context.read<ChatProvider>().sendMessage('How much protein should I eat to build muscle?'),
+              ),
+              ActionChip(
+                label: const Text('Best cardio for fat loss?'),
+                onPressed: () => context.read<ChatProvider>().sendMessage('What is the best type of cardio for fat loss?'),
+              ),
+            ],
+          )
         ],
       ),
     );
@@ -81,57 +117,65 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       alignment: message.isUser ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        constraints:
-            BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
-        decoration: BoxDecoration(
-          color: message.isUser
-              ? Theme.of(context).colorScheme.primary
-              : Theme.of(context).colorScheme.surfaceContainerHighest,
+      child: Card( // Use Card for a more modern look
+        elevation: 2,
+        color: message.isUser
+            ? Theme.of(context).colorScheme.primary
+            : Theme.of(context).colorScheme.surfaceContainerHighest,
+        shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),
-        child: Text(
-          message.text,
-          style: TextStyle(
-              color: message.isUser
-                  ? Theme.of(context).colorScheme.onPrimary
-                  : Theme.of(context).colorScheme.onSurfaceVariant),
+        child: Padding(
+          padding: const EdgeInsets.all(12.0),
+          child: Text(
+            message.text,
+            style: TextStyle(
+                color: message.isUser
+                    ? Theme.of(context).colorScheme.onPrimary
+                    : Theme.of(context).colorScheme.onSurface),
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildInputBar() {
-    // Watch the provider's loading state to disable the input bar
-    final isLoading = context.watch<ChatProvider>().isLoading;
-    return Container(
+  // UPDATED: Using the sleek input bar from Nutrition screen
+  Widget _buildAiInputField() {
+    final isAnalyzing = context.watch<ChatProvider>().isLoading;
+    return Padding(
       padding: EdgeInsets.fromLTRB(
           8, 8, 8, MediaQuery.of(context).viewInsets.bottom + 8),
-      color: Theme.of(context).colorScheme.surface,
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              controller: _textController,
-              enabled: !isLoading,
-              decoration: InputDecoration(
-                hintText: isLoading
-                    ? 'Assistant is thinking...'
-                    : 'Message your AI assistant...',
-                border: const OutlineInputBorder(),
-              ),
-              onSubmitted: (_) => _handleSendPressed(),
-            ),
+      child: Material(
+        elevation: 4,
+        borderRadius: BorderRadius.circular(25),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: BorderRadius.circular(25),
           ),
-          const SizedBox(width: 8),
-          isLoading
-              ? const Padding(
-                  padding: EdgeInsets.all(8.0),
-                  child: CircularProgressIndicator())
-              : IconButton(
-                  icon: const Icon(Icons.send), onPressed: _handleSendPressed),
-        ],
+          child: TextField(
+            controller: _textController,
+            enabled: !isAnalyzing,
+            decoration: InputDecoration(
+              hintText: isAnalyzing
+                  ? 'Analyzing...'
+                  : 'Message your AI assistant...',
+              border: InputBorder.none,
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+              suffixIcon: isAnalyzing
+                  ? const Padding(
+                      padding: EdgeInsets.all(12.0),
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : IconButton(
+                      icon: const Icon(Icons.send),
+                      onPressed: _handleSendPressed,
+                    ),
+            ),
+            onSubmitted: (_) => _handleSendPressed(),
+          ),
+        ),
       ),
     );
   }

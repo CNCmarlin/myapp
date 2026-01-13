@@ -37,14 +37,14 @@ class OnboardingProvider with ChangeNotifier {
   }
 
   void updateWeight(double value, String unit) {
-    _temporaryProfile =
-        _temporaryProfile.copyWith(weight: {'value': value, 'unit': unit});
+    _temporaryProfile = _temporaryProfile.copyWith(
+        weight: WeightData.fromAny({'value': value, 'unit': unit})); // SURGICAL: Cast Map to WeightData
     notifyListeners();
   }
 
   void updateHeight(double value, String unit) {
-    _temporaryProfile =
-        _temporaryProfile.copyWith(height: {'value': value, 'unit': unit});
+    _temporaryProfile = _temporaryProfile.copyWith(
+        height: HeightData.fromAny({'value': value, 'unit': unit})); // SURGICAL: Cast Map to HeightData
     notifyListeners();
   }
 
@@ -89,8 +89,8 @@ class OnboardingProvider with ChangeNotifier {
   }
 
   void updateGoalWeight(double value, String unit) {
-    _temporaryProfile =
-        _temporaryProfile.copyWith(goalWeight: {'value': value, 'unit': unit});
+    _temporaryProfile = _temporaryProfile.copyWith(
+        goalWeight: WeightData.fromAny({'value': value, 'unit': unit})); // SURGICAL: Cast Map to WeightData
     notifyListeners();
   }
 }

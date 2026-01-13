@@ -53,12 +53,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     return PopScope(
       canPop: false, // Prevents accidental pop
-      onPopInvoked: (didPop) async {
-        if (didPop) return;
-        final shouldPop = await _onWillPop();
-        if (shouldPop && mounted) {
-          Navigator.of(context).pop();
-        }
+      onPopInvokedWithResult: (didPop, result) async {
+          if (didPop) return;
+          final shouldPop = await _onWillPop();
+          if (shouldPop && context.mounted) {
+            Navigator.of(context).pop();
+          }
       },
       child: Scaffold(
         appBar: AppBar(
@@ -349,9 +349,9 @@ class _BodyStatsViewState extends State<_BodyStatsView> {
   }
 
   void _updateTextFields(UserProfile profile) {
-    final weightData = profile.weight ?? {'value': 0.0, 'unit': 'kg'};
-    final storedWeightValue = (weightData['value'] as num?)?.toDouble() ?? 0.0;
-    final storedWeightUnit = weightData['unit'] as String? ?? 'kg';
+    // SURGICAL: Access properties directly from the class instead of using Map indexing
+    final storedWeightValue = profile.weight?.value ?? 0.0;
+    final storedWeightUnit = profile.weight?.unit ?? 'kg';
     final double weightKg = (storedWeightUnit == 'lbs')
         ? storedWeightValue * 0.453592
         : storedWeightValue;

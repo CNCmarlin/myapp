@@ -69,7 +69,8 @@ class AIService {
         final updatedWorkoutData = responseData['updated_workout_json'];
 
         Workout? updatedWorkout;
-        if (updatedWorkoutData != null) {
+        // 🛡️ SHIELD: Added explicit Map type check to protect against unexpected cloud return types
+        if (updatedWorkoutData != null && updatedWorkoutData is Map) {
           updatedWorkout =
               Workout.fromMap(Map<String, dynamic>.from(updatedWorkoutData));
         }

@@ -107,9 +107,9 @@ class _WorkoutSummaryScreenState extends State<WorkoutSummaryScreen> {
 
   // REFACTORED: This section now uses the custom table layout
   Widget _buildExerciseDetailsSection(BuildContext context) {
-    // Filter for exercises that were actually performed
+    // Fix: Added null safety for exercises and their nested sets
     final loggedExercises =
-        widget.workout.exercises.where((e) => e.sets.isNotEmpty).toList();
+        widget.workout.exercises.where((e) => e.sets?.isNotEmpty ?? false).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -119,15 +119,18 @@ class _WorkoutSummaryScreenState extends State<WorkoutSummaryScreen> {
           style: Theme.of(context).textTheme.titleLarge,
         ),
         const SizedBox(height: 8),
-        ...loggedExercises.map((exercise) {
-          final lastSession = widget.lastSessionData[exercise.name];
+       ...loggedExercises.map((exercise) {
+          // Fix: Handle nullable exercise name for map lookup
+          final lastSession = widget.lastSessionData[exercise.name ?? ''];
 
           int programmedSets = 0;
-          final match = RegExp(r'(\d+)\s*x').firstMatch(exercise.programTarget);
+          // Fix: Null safety for regex match on programTarget
+          final match = RegExp(r'(\d+)\s*x').firstMatch(exercise.programTarget ?? '');
           if (match != null) {
             programmedSets = int.tryParse(match.group(1)!) ?? 0;
           }
-          int totalRows = max(programmedSets, exercise.sets.length);
+          // Fix: Added null-aware access to sets length
+          int totalRows = max(programmedSets, exercise.sets?.length ?? 0);
 
           return Card(
             margin: const EdgeInsets.symmetric(vertical: 8.0),
@@ -158,21 +161,28 @@ class _WorkoutSummaryScreenState extends State<WorkoutSummaryScreen> {
                   ),
                   const Divider(),
                   ...List.generate(totalRows, (rowIndex) {
-                    final loggedSet = (rowIndex < exercise.sets.length)
-                        ? exercise.sets[rowIndex]
-                        : null;
-                    final lastSet = (lastSession != null &&
-                            rowIndex < lastSession.sets.length)
-                        ? lastSession.sets[rowIndex]
-                        : null;
+                    // Fix: Replaced ternary logic with explicit variable assignment to resolve parser ambiguity
+                    ExerciseSet? loggedSet;
+                    final currentSets = exercise.sets;
+                    if (currentSets != null && rowIndex < currentSets.length) {
+                      loggedSet = currentSets[rowIndex];
+                    }
+
+                    // Fix: Replaced historical ternary with explicit if-block for syntax stability
+                    ExerciseSet? lastSet;
+                    final previousSets = lastSession?.sets;
+                    if (previousSets != null && rowIndex < previousSets.length) {
+                      lastSet = previousSets[rowIndex];
+                    }
 
                     final todaysLogWidget = loggedSet != null
                         ? Text(
-                            '${loggedSet.weight.toStringAsFixed(0)} x ${loggedSet.reps}')
+                            '${(loggedSet.weight ?? 0).toStringAsFixed(0)} x ${loggedSet.reps ?? 0}') // Fix: Added fallbacks for nullable numeric fields
                         : const Text('---',
                             style: TextStyle(color: Colors.grey));
                     final lastTimeLog = lastSet != null
-                        ? '${lastSet.weight.toStringAsFixed(0)} x ${lastSet.reps}'
+                        // Fix: Added null fallback for historical weight and reps fields
+                        ? '${(lastSet.weight ?? 0).toStringAsFixed(0)} x ${lastSet.reps ?? 0}'
                         : 'N/A';
                     final noteText = loggedSet?.notes ?? '---';
 

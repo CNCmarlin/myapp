@@ -14,10 +14,10 @@ class DailyFoodSummaryWidget extends StatelessWidget {
     double totalCalories = 0;
 
     for (var meal in meals) {
-      totalProtein += meal.protein;
-      totalCarbs += meal.carbs;
-      totalFat += meal.fat;
-      totalCalories += meal.calories;
+      totalProtein += meal.protein ?? 0; // Fix: Added null-coalescing to handle hardened nullable model
+      totalCarbs += meal.carbs ?? 0;     // Fix: Added null-coalescing to handle hardened nullable model
+      totalFat += meal.fat ?? 0;         // Fix: Added null-coalescing to handle hardened nullable model
+      totalCalories += meal.calories ?? 0; // Fix: Added null-coalescing to handle hardened nullable model
     }
 
     String proteinFeedback;

@@ -49,23 +49,27 @@ class _WorkoutLoggingScreenBasicState extends State<WorkoutLoggingScreenBasic> {
     if (existingWorkout == null) {
       existingWorkout = Workout(
         id: const Uuid().v4(),
-        name: widget.day.dayName,
+        name: widget.day.dayName ?? 'Unnamed Day', // Fix: Fallback for nullable dayName
         date: today,
         startTime: today,
         endTime: today,
         duration: '0 mins',
         caloriesBurned: 0.0,
         exercises:
-            widget.day.exercises.map((e) => e.copyWith(sets: [])).toList(),
+            widget.day.exercises?.map((e) => e.copyWith(sets: [])).toList() ?? [], // Fix: Null-safe list mapping
       );
       await _firestoreService.saveInProgressWorkout(userId, existingWorkout);
     }
 
     for (var exercise in existingWorkout.exercises) {
+      // Fix: Handle nullable exercise name before calling service
+      final exerciseName = exercise.name ?? '';
+      if (exerciseName.isEmpty) continue;
+
       final prevLog =
-          await _firestoreService.getPreviousExerciseLog(userId, exercise.name);
+          await _firestoreService.getPreviousExerciseLog(userId, exerciseName);
       if (prevLog != null) {
-        _lastSessionData[exercise.name] = prevLog;
+        _lastSessionData[exerciseName] = prevLog;
       }
     }
 
@@ -79,12 +83,17 @@ class _WorkoutLoggingScreenBasicState extends State<WorkoutLoggingScreenBasic> {
 
   void _addSet(Exercise exercise) {
     setState(() {
-      final lastSet = exercise.sets.isNotEmpty
-          ? exercise.sets.last
+      // Fix: Initialize sets list if null and use null-safe checks for length/access
+      exercise.sets ??= [];
+      final lastSet = exercise.sets!.isNotEmpty
+          ? exercise.sets!.last
           : ExerciseSet(id: const Uuid().v4(), weight: 0, reps: 0);
-      exercise.sets.add(
+      
+      exercise.sets!.add(
         ExerciseSet(
-            id: const Uuid().v4(), weight: lastSet.weight, reps: lastSet.reps),
+            id: const Uuid().v4(), 
+            weight: lastSet.weight ?? 0, 
+            reps: lastSet.reps ?? 0),
       );
     });
     _saveProgress();
@@ -108,7 +117,8 @@ class _WorkoutLoggingScreenBasicState extends State<WorkoutLoggingScreenBasic> {
       endTime: endTime,
       duration: '${duration.inMinutes} mins',
       exercises:
-          _sessionWorkout!.exercises.where((e) => e.sets.isNotEmpty).toList(),
+          // Fix: Added null-safe check for the sets list before checking for emptiness
+          _sessionWorkout!.exercises.where((e) => e.sets?.isNotEmpty ?? false).toList(),
     );
 
     if (finishedWorkout.exercises.isEmpty) {
@@ -198,7 +208,8 @@ class _WorkoutLoggingScreenBasicState extends State<WorkoutLoggingScreenBasic> {
         itemCount: _sessionWorkout!.exercises.length,
         itemBuilder: (context, index) {
           final exercise = _sessionWorkout!.exercises[index];
-          final lastSession = _lastSessionData[exercise.name];
+          // Fix: Handle nullable exercise name for map lookup
+          final lastSession = _lastSessionData[exercise.name ?? ''];
           return _ExerciseCard(
             exercise: exercise,
             lastSession: lastSession,
@@ -209,11 +220,11 @@ class _WorkoutLoggingScreenBasicState extends State<WorkoutLoggingScreenBasic> {
               initialValue: exercise.notes ?? '',
               onSave: (newNote) => setState(() => exercise.notes = newNote),
             ),
-            onSetNoteEdit: (setIndex) => _showEditNoteDialog(
+           onSetNoteEdit: (setIndex) => _showEditNoteDialog(
               title: 'Note for Set ${setIndex + 1}',
-              initialValue: exercise.sets[setIndex].notes ?? '',
+              initialValue: exercise.sets?[setIndex].notes ?? '', // Change: Added null safety for sets list access
               onSave: (newNote) =>
-                  setState(() => exercise.sets[setIndex].notes = newNote),
+                  setState(() => exercise.sets?[setIndex].notes = newNote), // Change: Added null safety for sets list assignment
             ),
           );
         },
@@ -261,13 +272,15 @@ class _ExerciseCardState extends State<_ExerciseCard> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        widget.exercise.name,
+                        // Fix: Added null fallback for nullable name field
+                        widget.exercise.name ?? 'Unknown Exercise',
                         style: Theme.of(context)
                             .textTheme
                             .titleLarge
                             ?.copyWith(fontWeight: FontWeight.bold),
                       ),
-                      if (widget.exercise.programTarget.isNotEmpty)
+                      // Fix: Added null safety for programTarget string check
+                      if (widget.exercise.programTarget?.isNotEmpty ?? false)
                         Text(
                           'Target: ${widget.exercise.programTarget}',
                           style: Theme.of(context).textTheme.bodySmall,
@@ -278,7 +291,7 @@ class _ExerciseCardState extends State<_ExerciseCard> {
                 // NEW: Exercise note button
                 IconButton(
                   icon: Icon(
-                    widget.exercise.notes?.isNotEmpty ?? false
+                    widget.exercise.notes != null && widget.exercise.notes!.isNotEmpty // Change: Simplified check to resolve non_bool_condition error
                         ? Icons.speaker_notes
                         : Icons.speaker_notes_off_outlined,
                   ),
@@ -290,7 +303,7 @@ class _ExerciseCardState extends State<_ExerciseCard> {
             const SizedBox(height: 16),
             _buildSetTableHeader(),
             const Divider(),
-            for (int i = 0; i < widget.exercise.sets.length; i++)
+            for (int i = 0; i < (widget.exercise.sets?.length ?? 0); i++) // Change: Added null-aware length check for nullable sets list
               _buildSetRow(i),
             const SizedBox(height: 8),
             TextButton.icon(
@@ -323,12 +336,17 @@ class _ExerciseCardState extends State<_ExerciseCard> {
     );
   }
 
-  Widget _buildSetRow(int index) {
-    final set = widget.exercise.sets[index];
-    final lastSet = (widget.lastSession != null &&
-            index < widget.lastSession!.sets.length)
-        ? widget.lastSession!.sets[index]
-        : null;
+ Widget _buildSetRow(int index) {
+    // Fix: Null-aware indexing for the current exercise sets
+    final set = widget.exercise.sets?[index];
+    if (set == null) return const SizedBox.shrink(); // Guard against index out of bounds or null list
+
+    // Fix: Replaced complex ternary with explicit conditional logic to resolve non_bool_condition and parser errors
+    ExerciseSet? lastSet;
+    final lastSessionSets = widget.lastSession?.sets;
+    if (lastSessionSets != null && index < lastSessionSets.length) {
+      lastSet = lastSessionSets[index];
+    }
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
@@ -370,10 +388,12 @@ class _ExerciseCardState extends State<_ExerciseCard> {
             ),
           ),
           // NEW: Set note button
+          // NEW: Set note button
           SizedBox(
             width: 40,
             child: IconButton(
               icon: Icon(
+                // Fix: Access property on the 'set' variable with null safety
                 set.notes?.isNotEmpty ?? false
                     ? Icons.comment
                     : Icons.add_comment_outlined,
@@ -387,7 +407,8 @@ class _ExerciseCardState extends State<_ExerciseCard> {
             child: IconButton(
               icon: const Icon(Icons.delete_outline, size: 20),
               onPressed: () {
-                setState(() => widget.exercise.sets.removeAt(index));
+                // Fix: Null-safe removal from the sets list
+                setState(() => widget.exercise.sets?.removeAt(index));
                 widget.onSetChanged();
               },
             ),

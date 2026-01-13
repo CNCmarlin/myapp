@@ -56,7 +56,8 @@ class _NutritionLoggingScreenState extends State<NutritionLoggingScreen> {
     }
 
     final log = nutritionProvider.log!;
-    final mealTypes = log.meals.keys.toList();
+    // Change: Mapping the list of slots to a list of names for the TabBar
+    final mealTypes = log.meals.map((slot) => slot.slotName ?? 'Unknown').toList();
 
     return DefaultTabController(
       length: mealTypes.length,
@@ -67,13 +68,13 @@ class _NutritionLoggingScreenState extends State<NutritionLoggingScreen> {
             isScrollable: true,
             tabs: mealTypes.map((type) => Tab(text: type)).toList(),
           ),
-          Expanded(
+         Expanded(
             child: TabBarView(
-              children: mealTypes.map((type) {
+              children: log.meals.map((slot) { // Change: Iterating directly over the list of slots
                 return _buildMealList(
                   context,
-                  type,
-                  log.meals[type]!,
+                  slot.slotName ?? 'Unknown', // Change: Passing slotName property
+                  slot.items ?? [],           // Change: Passing items list with null safety
                   nutritionProvider,
                 );
               }).toList(),
@@ -99,23 +100,23 @@ class _NutritionLoggingScreenState extends State<NutritionLoggingScreen> {
               target: profile.targetCalories ?? 0,
               color: Colors.blue, // ADDED
             ),
-            MacroIndicator(
+           MacroIndicator(
               label: 'Protein',
-              value: log.totalMacros['protein'] ?? 0,
+              value: log.totalMacros?.protein ?? 0, // Change: Access property via dot notation on object
               target: profile.targetProtein ?? 0,
               unit: 'g',
               color: Colors.red, // ADDED
             ),
             MacroIndicator(
               label: 'Carbs',
-              value: log.totalMacros['carbs'] ?? 0,
+              value: log.totalMacros?.carbs ?? 0,
               target: profile.targetCarbs ?? 0,
               unit: 'g',
               color: Colors.orange, // ADDED
             ),
             MacroIndicator(
               label: 'Fat',
-              value: log.totalMacros['fat'] ?? 0,
+              value: log.totalMacros?.fat ?? 0,
               target: profile.targetFat ?? 0,
               unit: 'g',
               color: Colors.purple, // ADDED
@@ -147,9 +148,9 @@ class _NutritionLoggingScreenState extends State<NutritionLoggingScreen> {
         }
         final item = foodItems[index];
         return ListTile(
-          title: Text(item.name),
+          title: Text(item.name ?? 'Unknown'), // Change: Handle nullable name
           subtitle: Text(
-              '${item.calories.toStringAsFixed(0)} kcal - P:${item.protein.toStringAsFixed(0)}g C:${item.carbs.toStringAsFixed(0)}g F:${item.fat.toStringAsFixed(0)}g'),
+              '${(item.calories ?? 0).toStringAsFixed(0)} kcal - P:${(item.protein ?? 0).toStringAsFixed(0)}g C:${(item.carbs ?? 0).toStringAsFixed(0)}g F:${(item.fat ?? 0).toStringAsFixed(0)}g'), // Change: Added fallbacks for toStringAsFixed
           trailing: IconButton(
             icon: const Icon(Icons.delete_outline, color: Colors.red),
             onPressed: () => provider.removeFoodFromMeal(mealType, item),

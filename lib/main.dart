@@ -10,6 +10,7 @@ import '../providers/date_provider.dart';
 import '../providers/chat_provider.dart';
 import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
+import '../services/local_storage_service.dart';
 import '../providers/user_profile_provider.dart';
 import '../widgets/auth_wrapper.dart';
 import '../providers/insights_provider.dart';
@@ -22,9 +23,15 @@ Future<void> main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
+  final localStorageService =
+      LocalStorageService(); // Change: Initialize local service
+  await localStorageService
+      .init(); // Change: Ensure Isar is ready before providers start
+
   await FirebaseAppCheck.instance.activate(
-    androidProvider:
-        kDebugMode ? AndroidProvider.debug : AndroidProvider.playIntegrity,
+    providerAndroid: kDebugMode
+        ? AndroidDebugProvider() // Use the class
+        : AndroidPlayIntegrityProvider(), // Use the recommended class
   );
 
   runApp(
@@ -33,6 +40,9 @@ Future<void> main() async {
         // Foundational Services
         Provider<AuthService>(create: (_) => AuthService()),
         Provider<FirestoreService>(create: (_) => FirestoreService()),
+        Provider<LocalStorageService>(
+            create: (_) =>
+                localStorageService), // Change: Inject local storage as a foundational service
 
         // App State Providers
         // ChangeNotifierProvider(create: (_) => ChatProvider()), // REMOVE THIS LINE
@@ -49,7 +59,8 @@ Future<void> main() async {
         ChangeNotifierProvider(
           create: (context) => UserProfileProvider(
             authService: context.read<AuthService>(),
-            firestoreService: context.read<FirestoreService>(),
+            // Fix: Swapped legacy FirestoreService for LocalStorageService
+            localStorageService: context.read<LocalStorageService>(),
           ),
         ),
 
@@ -57,14 +68,13 @@ Future<void> main() async {
         ChangeNotifierProxyProvider<UserProfileProvider, WorkoutProvider>(
           create: (context) => WorkoutProvider(
             authService: context.read<AuthService>(),
-            firestoreService: context.read<FirestoreService>(),
+            localStorageService: context.read<LocalStorageService>(),
             userProfileProvider: context.read<UserProfileProvider>(),
           ),
-          
           update: (context, userProfileProvider, previousWorkoutProvider) =>
               WorkoutProvider(
             authService: context.read<AuthService>(),
-            firestoreService: context.read<FirestoreService>(),
+            localStorageService: context.read<LocalStorageService>(),
             userProfileProvider: userProfileProvider,
           ),
         ),
@@ -75,6 +85,7 @@ Future<void> main() async {
             userId: context.read<AuthService>().currentUser?.uid ?? '',
             date: context.read<DateProvider>().selectedDate,
             authService: context.read<AuthService>(), // ADD THIS
+            localStorageService: context.read<LocalStorageService>(),
           ),
           update: (context, userProfileProvider, dateProvider,
               previousNutritionLogProvider) {
@@ -83,15 +94,19 @@ Future<void> main() async {
             final newDate = dateProvider.selectedDate;
 
             if (previousNutritionLogProvider == null || userId.isEmpty) {
+              // Inside MultiProvider -> ChangeNotifierProxyProvider2
               return NutritionLogProvider(
                 userId: userId,
                 date: newDate,
                 userProfile: newProfile,
-                authService: context.read<AuthService>(), // ADD THIS
+                authService: context.read<AuthService>(),
+                localStorageService:
+                    context.read<LocalStorageService>(), // ADD THIS LINE
               );
             }
 
-            previousNutritionLogProvider.updateDependencies(newDate, newProfile);
+            previousNutritionLogProvider.updateDependencies(
+                newDate, newProfile);
             return previousNutritionLogProvider;
           },
         ),

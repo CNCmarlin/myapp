@@ -1,8 +1,14 @@
 // lib/models/workout_data.dart
 
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:isar/isar.dart';
 
+part 'workout_data.g.dart'; // Change: Added for code generation
+
+@collection
 class WorkoutProgram {
+  Id isarId = Isar.autoIncrement; // Change: Added required integer Id for Isar collection
+
+  @Index(unique: true, replace: true) // Change: Added index for string ID to maintain legacy lookups
   String id;
   String name;
   List<WorkoutDay> days;
@@ -45,11 +51,14 @@ class WorkoutProgram {
   }
 }
 
+@embedded 
 class WorkoutDay {
-  String dayName;
-  List<Exercise> exercises;
+  String? dayName;
+  List<Exercise>? exercises;
 
-  WorkoutDay({required this.dayName, required this.exercises});
+  // Fix: Added braces to make parameters optional and avoid "missing default value" errors
+  WorkoutDay({this.dayName, this.exercises});
+
 
   factory WorkoutDay.fromMap(Map<String, dynamic> map) {
     return WorkoutDay(
@@ -64,14 +73,19 @@ class WorkoutDay {
   Map<String, dynamic> toMap() {
     return {
       'dayName': dayName,
-      'exercises': exercises.map((e) => e.toMap()).toList(),
+      // Fix: Added null-aware operator to handle nullable exercises list
+      'exercises': exercises?.map((e) => e.toMap()).toList() ?? [],
     };
   }
 }
 
+@collection // Change: Mark as standalone table for history
 class Workout {
+  Id isarId = Isar.autoIncrement; // Change: Required integer ID
+
+  @Index(unique: true, replace: true)
   String id;
-  String name; // <-- FIELD ADDED
+  String name; 
   DateTime date;
   DateTime startTime;
   DateTime endTime;
@@ -90,10 +104,10 @@ class Workout {
     required this.exercises,
   });
 
-  // Helper function to handle both Timestamp and String
+  // Helper function to handle both DateTime and String
   static DateTime _parseDate(dynamic dateValue) {
-    if (dateValue is Timestamp) {
-      return dateValue.toDate();
+    if (dateValue is DateTime) { // Change: Handle local DateTime directly
+      return dateValue;
     } else if (dateValue is String) {
       return DateTime.parse(dateValue);
     }
@@ -130,20 +144,21 @@ class Workout {
   }
 }
 
+@embedded 
 class Exercise {
-  String name;
-  String status;
-  String programTarget;
-  List<ExerciseSet> sets;
+  String? name;
+  String? status;
+  String? programTarget;
+  List<ExerciseSet>? sets;
   String? notes;
 
   Exercise({
-    required this.name,
-    required this.status,
-    required this.programTarget,
-    required this.sets,
+    this.name,
+    this.status,
+    this.programTarget,
+    this.sets,
     this.notes,
-  });
+  }); // Change: Removed 'required' and braces to align constructor with nullable fields
 
   factory Exercise.fromMap(Map<String, dynamic> map) {
     return Exercise(
@@ -163,25 +178,27 @@ class Exercise {
       'name': name,
       'status': status,
       'programTarget': programTarget,
-      'sets': sets.map((s) => s.toMap()).toList(),
-      'notes': notes, // UPDATED TO_MAP
+      // Fix: Added null-aware operator to sets map to handle the new nullable model structure
+      'sets': sets?.map((s) => s.toMap()).toList() ?? [], 
+      'notes': notes,
     };
   }
 }
 
 
+@embedded // Change: Added required annotation for nested schema generation
 class ExerciseSet {
-  String id;
-  double weight;
-  int reps;
+  String? id;
+  double? weight;
+  int? reps;
   String? notes;
 
   ExerciseSet({
-    required this.id,
-    required this.weight,
-    required this.reps,
+    this.id,
+    this.weight,
+    this.reps,
     this.notes,
-  });
+  }); // Change: Constructor updated for null-safe hydration
 
   factory ExerciseSet.fromMap(Map<String, dynamic> map) {
     return ExerciseSet(

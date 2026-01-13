@@ -144,12 +144,14 @@ class FirestoreService {
       return Workout(
         id: '${programDoc.id}_${DateFormat('yyyyMMdd').format(DateTime.now())}',
         date: DateTime.now(),
-        name: workoutDay.dayName,
+        // Fix: Added fallback for nullable dayName field
+        name: workoutDay.dayName ?? 'Unnamed Day',
         startTime: DateTime.now(),
         endTime: DateTime.now(),
         duration: "N/A",
         caloriesBurned: 0.0,
-        exercises: workoutDay.exercises,
+        // Fix: Added fallback for nullable exercises list
+        exercises: workoutDay.exercises ?? [],
       );
     } catch (e) {
       if (kDebugMode) {
@@ -364,8 +366,9 @@ class FirestoreService {
       for (final workoutDoc in workoutLogsSnapshot.docs) {
         final workoutData = Workout.fromMap(workoutDoc.data());
         try {
+          // Fix: Added null fallback for exercise name before performing string comparison
           return workoutData.exercises.firstWhere((exercise) =>
-              exercise.name.toLowerCase() == exerciseName.toLowerCase());
+              (exercise.name ?? '').toLowerCase() == exerciseName.toLowerCase());
         } catch (e) {
           // Exercise not found in this log, continue to the next
         }

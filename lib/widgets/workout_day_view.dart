@@ -17,7 +17,8 @@ class WorkoutDayView extends StatelessWidget {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        if (day.exercises.isEmpty)
+        // Fix: Added null-aware operator for isEmpty check on exercises
+        if (day.exercises?.isEmpty ?? true)
           const Padding(
             padding: EdgeInsets.all(16.0),
             child: Text('No exercises for this day yet.'),
@@ -27,12 +28,15 @@ class WorkoutDayView extends StatelessWidget {
             shrinkWrap: true,
             physics:
                 const NeverScrollableScrollPhysics(), // Prevent nested scrolling
-            itemCount: day.exercises.length,
+            // Fix: Added null-aware length check for the builder
+            itemCount: day.exercises?.length ?? 0,
             itemBuilder: (context, index) {
-              final exercise = day.exercises[index];
+              // Fix: Added null-aware index access for exercises list
+              final exercise = day.exercises?[index];
               return ListTile(
-                title: Text(exercise.name),
-                subtitle: Text('Target: ${exercise.programTarget}'),
+                // Fix: Added fallbacks for nullable name and programTarget fields
+                title: Text(exercise?.name ?? 'Unknown Exercise'),
+                subtitle: Text('Target: ${exercise?.programTarget ?? 'N/A'}'),
               );
             },
           ),

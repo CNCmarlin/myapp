@@ -1,20 +1,23 @@
 import 'package:intl/intl.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:isar/isar.dart';
 
+part 'meal_data.g.dart';
+
+@embedded
 class FoodItem {
-  String name;
-  double protein;
-  double carbs;
-  double fat;
-  double calories;
+  String? name;
+  double? protein; // Change: Transitioned to nullable to support Isar hydration
+  double? carbs;
+  double? fat;
+  double? calories;
   String? notes;
 
   FoodItem({
-    required this.name,
-    required this.protein,
-    required this.carbs,
-    required this.fat,
-    required this.calories,
+    this.name,
+    this.protein,
+    this.carbs,
+    this.fat,
+    this.calories,
     this.notes,
   });
 
@@ -41,18 +44,19 @@ class FoodItem {
   }
 }
 
+@embedded
 class Meal {
-  String mealName;
-  List<FoodItem> foods;
-  double protein;
-  double carbs;
-  double fat;
-  double calories;
+  String? mealName;
+  List<FoodItem>? foods;
+  double? protein;
+  double? carbs;
+  double? fat;
+  double? calories;
   String? aiInsight;
 
   Meal({
-    required this.mealName, required this.foods, required this.protein,
-    required this.carbs, required this.fat, required this.calories,
+    this.mealName, this.foods, this.protein,
+    this.carbs, this.fat, this.calories,
     this.aiInsight,
   });
 
@@ -73,25 +77,48 @@ class Meal {
   Map<String, dynamic> toMap() {
     return {
       'mealName': mealName,
-      'foods': foods.map((food) => food.toMap()).toList(),
+      'foods': foods?.map((food) => food.toMap()).toList() ?? [], // Change: Added null-aware operator and fallback list
       'protein': protein, 'carbs': carbs, 'fat': fat,
       'calories': calories, 'aiInsight': aiInsight,
     };
   }
 }
 
+
+@embedded // Change: New class to handle Isar's lack of native Map<String, double> support
+class MacroData {
+  double protein = 0.0;
+  double carbs = 0.0;
+  double fat = 0.0;
+}
+
+@embedded // Change: New class to handle Isar's lack of native Map<String, List<FoodItem>> support
+class MealSlot {
+  String? slotName; // e.g., 'Breakfast'
+  List<FoodItem>? items;
+}
+
+@collection // Change: Mark NutritionLog as a primary database table
 class NutritionLog {
+  Id isarId = Isar.autoIncrement; // Change: Added integer primary key for Isar
+
+  @Index(unique: true, replace: true) // Change: Preserved string ID for sync consistency
   String id;
   DateTime date;
-  Map<String, List<FoodItem>> meals;
+  
+  List<MealSlot> meals; // Change: Replaced Map with Isar-compatible List of objects
   List<Meal> aiGeneratedMeals;
   double waterIntake;
   double totalCalories;
-  Map<String, double> totalMacros;
+  MacroData? totalMacros; // Change: Replaced Map with typed object
 
-  // ADDED BACK for compatibility
+ // ADDED BACK for compatibility
   bool isLowCarbDay;
   int? hungerRating;
+
+  // Sync Metadata
+  DateTime? lastSynced; // Change: Added for Stage 4 backup logic
+  bool isDirty = false; // Change: Marker for local modifications
 
   NutritionLog({
     required this.id,
@@ -100,9 +127,11 @@ class NutritionLog {
     this.aiGeneratedMeals = const [],
     required this.waterIntake,
     required this.totalCalories,
-    required this.totalMacros,
+    this.totalMacros, // Change: Removed required to allow null initialization
     this.isLowCarbDay = false,
     this.hungerRating,
+    this.lastSynced,
+    this.isDirty = false,
   });
 
   factory NutritionLog.empty({DateTime? date}) {
@@ -110,71 +139,113 @@ class NutritionLog {
     return NutritionLog(
       id: DateFormat('yyyy-MM-dd').format(newDate),
       date: newDate,
-      meals: { 'Breakfast': [], 'Lunch': [], 'Dinner': [], 'Snacks': [] },
+      // Change: Initializing with List of MealSlots instead of Map literals
+      meals: [
+        MealSlot()..slotName = 'Breakfast'..items = [],
+        MealSlot()..slotName = 'Lunch'..items = [],
+        MealSlot()..slotName = 'Dinner'..items = [],
+        MealSlot()..slotName = 'Snacks'..items = [],
+      ],
       waterIntake: 0.0,
       totalCalories: 0.0,
-      totalMacros: {'protein': 0, 'carbs': 0, 'fat': 0},
+      totalMacros: MacroData(), // Change: Initializing with typed object
     );
   }
 
-  void recalculateTotals() {
+ void recalculateTotals() {
     double tempTotalCalories = 0;
-    Map<String, double> tempTotalMacros = {'protein': 0, 'carbs': 0, 'fat': 0};
+    double tempProtein = 0;
+    double tempCarbs = 0;
+    double tempFat = 0;
     
-    meals.forEach((mealName, foodItems) {
-      for (var food in foodItems) {
-        tempTotalCalories += food.calories;
-        tempTotalMacros['protein'] = (tempTotalMacros['protein'] ?? 0) + food.protein;
-        tempTotalMacros['carbs'] = (tempTotalMacros['carbs'] ?? 0) + food.carbs;
-        tempTotalMacros['fat'] = (tempTotalMacros['fat'] ?? 0) + food.fat;
+    // Change: Refactored loop to iterate over MealSlot list
+    for (var slot in meals) {
+      if (slot.items != null) {
+        for (var food in slot.items!) {
+          tempTotalCalories += food.calories ?? 0;
+          tempProtein += food.protein ?? 0;
+          tempCarbs += food.carbs ?? 0;
+          tempFat += food.fat ?? 0;
+        }
       }
-    });
+    }
 
     totalCalories = tempTotalCalories;
-    totalMacros = tempTotalMacros;
+    // Change: Assigned to MacroData object
+    totalMacros = MacroData()
+      ..protein = tempProtein
+      ..carbs = tempCarbs
+      ..fat = tempFat;
   }
 
   factory NutritionLog.fromMap(Map<String, dynamic> map) {
-    Map<String, List<FoodItem>> parsedMeals = {};
+    // Change: Refactored to build a List of MealSlots instead of a Map
+    List<MealSlot> parsedMeals = [];
     if (map['meals'] is Map) {
       (map['meals'] as Map).forEach((key, value) {
         if (value is List) {
-          parsedMeals[key.toString()] = value.map((item) =>
-            FoodItem.fromMap(item as Map<String, dynamic>)).toList();
+          parsedMeals.add(MealSlot()
+            ..slotName = key.toString()
+            ..items = value.map((item) => FoodItem.fromMap(Map<String, dynamic>.from(item))).toList());
         }
       });
     }
 
     return NutritionLog(
       id: map['id'],
-      date: (map['date'] as Timestamp).toDate(),
-      meals: parsedMeals.isNotEmpty ? parsedMeals : {
-        'Breakfast': [], 'Lunch': [], 'Dinner': [], 'Snacks': [],
-      },
+      // Change: Replaced Timestamp with DateTime/String handling for local-first compatibility
+      date: map['date'] is DateTime 
+          ? map['date'] 
+          : (map['date'] is String ? DateTime.parse(map['date']) : DateTime.now()),
+      meals: parsedMeals.isNotEmpty ? parsedMeals : [
+        MealSlot()..slotName = 'Breakfast'..items = [],
+        MealSlot()..slotName = 'Lunch'..items = [],
+        MealSlot()..slotName = 'Dinner'..items = [],
+        MealSlot()..slotName = 'Snacks'..items = [],
+      ],
       aiGeneratedMeals: (map['aiGeneratedMeals'] as List<dynamic>?)
-              ?.map((mealMap) => Meal.fromMap(mealMap as Map<String, dynamic>))
+              ?.map((mealMap) => Meal.fromMap(Map<String, dynamic>.from(mealMap)))
               .toList() ?? [],
       waterIntake: (map['waterIntake'] as num?)?.toDouble() ?? 0.0,
       totalCalories: (map['totalCalories'] as num?)?.toDouble() ?? 0.0,
-      totalMacros: Map<String, double>.from(map['totalMacros'] ?? {}),
-      // ADDED BACK for compatibility
+      // Change: Converted Map data into MacroData object
+      totalMacros: map['totalMacros'] != null 
+        ? (MacroData()
+            ..protein = (map['totalMacros']['protein'] as num?)?.toDouble() ?? 0.0
+            ..carbs = (map['totalMacros']['carbs'] as num?)?.toDouble() ?? 0.0
+            ..fat = (map['totalMacros']['fat'] as num?)?.toDouble() ?? 0.0)
+        : MacroData(),
       isLowCarbDay: map['isLowCarbDay'] ?? false,
       hungerRating: map['hungerRating'] as int?,
+      // Change: Added sync metadata for Stage 4 logic
+      lastSynced: map['lastSynced'] != null ? DateTime.parse(map['lastSynced']) : null,
+      isDirty: map['isDirty'] ?? false,
     );
   }
 
   Map<String, dynamic> toMap() {
+    // SHIELD: Constructing a legacy-style Map for UI/Provider compatibility
+    Map<String, dynamic> legacyMeals = {};
+    for (var slot in meals) {
+      legacyMeals[slot.slotName ?? 'Unknown'] = slot.items?.map((f) => f.toMap()).toList() ?? [];
+    }
+
     return {
       'id': id,
-      'date': date,
-      'meals': meals.map((key, value) => MapEntry(key, value.map((food) => food.toMap()).toList())),
+      'date': date.toIso8601String(), // Change: Deterministic string for serialization
+      'meals': legacyMeals, // SHIELD: Returning the map the rest of the app expects
       'aiGeneratedMeals': aiGeneratedMeals.map((meal) => meal.toMap()).toList(),
       'waterIntake': waterIntake,
       'totalCalories': totalCalories,
-      'totalMacros': totalMacros,
-      // ADDED BACK for compatibility
+      'totalMacros': {
+        'protein': totalMacros?.protein ?? 0.0,
+        'carbs': totalMacros?.carbs ?? 0.0,
+        'fat': totalMacros?.fat ?? 0.0,
+      }, // SHIELD: Returning the map the rest of the app expects
       'isLowCarbDay': isLowCarbDay,
       'hungerRating': hungerRating,
+      'lastSynced': lastSynced?.toIso8601String(),
+      'isDirty': isDirty,
     };
   }
 }

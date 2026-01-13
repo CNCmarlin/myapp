@@ -4,20 +4,20 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/user_profile.dart';
 import '../services/auth_service.dart';
-import '../services/firestore_service.dart';
+import '../services/local_storage_service.dart'; // Change: Imported LocalStorageService
 import 'package:firebase_auth/firebase_auth.dart';
 
 enum UserProfileStatus { uninitialized, loading, loaded, error }
 
 class UserProfileProvider with ChangeNotifier {
   final AuthService _authService;
-  final FirestoreService _firestoreService;
+  final LocalStorageService _localStorageService; // Change: Replaced FirestoreService with LocalStorageService
   late final StreamSubscription<User?> _authStateSubscription;
 
   UserProfile? _userProfile;
   UserProfile? _savedProfile;
   UserProfileStatus _status = UserProfileStatus.uninitialized;
-  String? _errorMessage;
+  // Change: Removed unused _errorMessage field to resolve diagnostic
   bool hasUnsavedChanges = false;
 
   bool _isSaving = false;
@@ -28,14 +28,14 @@ class UserProfileProvider with ChangeNotifier {
   bool get isLoading => _status == UserProfileStatus.loading;
   bool get isSaving => _isSaving;
 
-  UserProfileProvider({
+ UserProfileProvider({
     required AuthService authService,
-    required FirestoreService firestoreService,
+    required LocalStorageService localStorageService, // Change: Update parameter to local service
   })  : _authService = authService,
-        _firestoreService = firestoreService {
+        _localStorageService = localStorageService { // Change: Initialize local service
     _authStateSubscription = _authService.authStateChanges.listen((user) {
       if (user != null) {
-        _loadInitialData(user.uid);
+        _loadInitialData(); // Change: Local lookup doesn't strictly require userId
       } else {
         _userProfile = null;
         _savedProfile = null;
@@ -53,17 +53,19 @@ class UserProfileProvider with ChangeNotifier {
     }
   }
 
-  Future<void> _loadInitialData(String userId) async {
+  Future<void> _loadInitialData() async { // Change: Removed userId parameter
     if (_status == UserProfileStatus.loading) return;
     _status = UserProfileStatus.loading;
     notifyListeners();
     try {
-      _userProfile = await _firestoreService.getUserProfile(userId);
+      // Change: Retrieve from Isar instead of Firestore
+      _userProfile = await _localStorageService.getUserProfile();
       _savedProfile = _userProfile?.copyWith(); 
       hasUnsavedChanges = false;
       _status = UserProfileStatus.loaded;
     } catch (e) {
-      _errorMessage = 'Error fetching user data: $e';
+      // Change: Replaced field assignment with debugPrint
+      debugPrint('Local Profile Load Error: $e');
       _status = UserProfileStatus.error;
     }
     notifyListeners();
@@ -72,17 +74,19 @@ class UserProfileProvider with ChangeNotifier {
   Future<void> refreshData() async {
     final userId = _authService.currentUser?.uid;
     if (userId != null) {
-      await _loadInitialData(userId);
+      // Fix: Removed positional argument to match the new local-first signature
+      await _loadInitialData(); 
     }
   }
 
-  Future<void> updateActiveProgram(String? newProgramId) async {
-    final userId = _authService.currentUser?.uid;
-    if (_userProfile == null || userId == null) return;
+ Future<void> updateActiveProgram(String? newProgramId) async {
+    if (_userProfile == null) return; // Change: Removed userId requirement
 
     _userProfile = _userProfile!.copyWith(activeProgramId: newProgramId);
     notifyListeners(); // Optimistic update
-    await _firestoreService.saveUserProfile(userId, _userProfile!);
+    
+    // Change: Persist to local storage
+    await _localStorageService.saveUserProfile(_userProfile!);
   }
 
 // NEW: Method to discard changes
@@ -128,10 +132,10 @@ class UserProfileProvider with ChangeNotifier {
     _userProfile = _userProfile!.copyWith(
       unitSystem: unitSystem,
       biologicalSex: biologicalSex,
-      weight: weight,
-      height: height,
+      weight: WeightData.fromAny(weight), // SURGICAL: Shielded conversion
+      height: HeightData.fromAny(height), // SURGICAL: Shielded conversion
       bodyFatPercentage: bodyFatPercentage,
-      measurements: measurements,
+      measurements: MeasurementData.fromAny(measurements), // SURGICAL: Shielded conversion
       fitnessProficiency: fitnessProficiency,
     );
     hasUnsavedChanges = true;
@@ -139,19 +143,21 @@ class UserProfileProvider with ChangeNotifier {
   }
 
   Future<bool> saveProfileChanges() async {
-    final userId = _authService.currentUser?.uid;
-    if (userId == null || _userProfile == null) return false;
+    // Fix: Removed userId requirement for local-first persistence
+    if (_userProfile == null) return false;
 
     _isSaving = true;
     notifyListeners();
 
     try {
-      await _firestoreService.saveUserProfile(userId, _userProfile!);
-      _savedProfile = _userProfile?.copyWith(); // Update the cache on successful save
+      // Fix: Swapped legacy Firestore call for LocalStorage persistence
+      await _localStorageService.saveUserProfile(_userProfile!);
+      _savedProfile = _userProfile?.copyWith(); 
       hasUnsavedChanges = false;
       return true;
     } catch (e) {
-      _errorMessage = "Failed to save profile: $e";
+      // Fix: Replaced undefined _errorMessage with debugPrint for error logging
+      debugPrint("Failed to save profile: $e");
       return false;
     } finally {
       _isSaving = false;

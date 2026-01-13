@@ -3,7 +3,7 @@
 import 'package:flutter/material.dart';
 import '../models/workout_data.dart';
 import '../models/meal_data.dart';
-import '../services/firestore_service.dart';
+import '../services/local_storage_service.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
@@ -17,7 +17,7 @@ class OverallSummaryScreen extends StatefulWidget {
 }
 
 class OverallSummaryScreenState extends State<OverallSummaryScreen> {
-  final FirestoreService _firestoreService = FirestoreService();
+  final LocalStorageService _localStorageService = LocalStorageService();
   bool _isLoading = true;
   Workout? _workoutLog;
   NutritionLog? _nutritionLog;
@@ -37,10 +37,9 @@ class OverallSummaryScreenState extends State<OverallSummaryScreen> {
       return;
     }
 
-    final workout = await _firestoreService.getWorkoutLogByDate(
-        userId, widget.selectedDate);
-    final nutrition =
-        await _firestoreService.getNutritionLog(userId, widget.selectedDate);
+    // Fix: Updated methods to use local storage logic; removed userId as local DB is device-scoped
+    final workout = await _localStorageService.getWorkoutByDate(widget.selectedDate);
+    final nutrition = await _localStorageService.getNutritionLogByDate(widget.selectedDate);
 
     if (mounted) {
       setState(() {
@@ -89,11 +88,11 @@ class OverallSummaryScreenState extends State<OverallSummaryScreen> {
                           Text(
                               'Total Calories Consumed: ${_nutritionLog?.totalCalories.toStringAsFixed(0) ?? 'N/A'} kcal'),
                           Text(
-                              'Protein Intake: ${_nutritionLog?.totalMacros['protein']?.toStringAsFixed(0) ?? 'N/A'} g'),
-                          Text(
-                              'Carbs Intake: ${_nutritionLog?.totalMacros['carbs']?.toStringAsFixed(0) ?? 'N/A'} g'),
-                          Text(
-                              'Fat Intake: ${_nutritionLog?.totalMacros['fat']?.toStringAsFixed(0) ?? 'N/A'} g'),
+                      'Protein Intake: ${_nutritionLog?.totalMacros?.protein.toStringAsFixed(0) ?? 'N/A'} g'), // Fix: Access property directly on MacroData object
+                  Text(
+                      'Carbs Intake: ${_nutritionLog?.totalMacros?.carbs.toStringAsFixed(0) ?? 'N/A'} g'),   // Fix: Access property directly on MacroData object
+                  Text(
+                      'Fat Intake: ${_nutritionLog?.totalMacros?.fat.toStringAsFixed(0) ?? 'N/A'} g'),       // Fix: Access property directly on MacroData object
                           Text(
                               'Water Intake: ${_nutritionLog?.waterIntake.toStringAsFixed(0) ?? 'N/A'} oz'),
                           Text(

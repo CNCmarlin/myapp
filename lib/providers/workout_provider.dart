@@ -5,14 +5,14 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/workout_data.dart';
 import '../services/auth_service.dart';
-import '../services/firestore_service.dart';
+import '../services/local_storage_service.dart';
 import '../providers/user_profile_provider.dart'; // Import for inter-provider communication
 
 enum DataStatus { uninitialized, loading, loaded, error }
 
 class WorkoutProvider with ChangeNotifier {
   final AuthService _authService;
-  final FirestoreService _firestoreService;
+  final LocalStorageService _localStorageService;
   final UserProfileProvider
       _userProfileProvider; // Dependency for checking active program
 
@@ -30,14 +30,14 @@ class WorkoutProvider with ChangeNotifier {
 
   WorkoutProvider({
     required AuthService authService,
-    required FirestoreService firestoreService,
+    required LocalStorageService localStorageService, // Change: Constructor parameter updated to LocalStorageService
     required UserProfileProvider userProfileProvider,
   })  : _authService = authService,
-        _firestoreService = firestoreService,
+        _localStorageService = localStorageService,
         _userProfileProvider = userProfileProvider {
     _authStateSubscription = _authService.authStateChanges.listen((user) {
       if (user != null) {
-        _loadWorkoutPrograms(user.uid);
+        _loadWorkoutPrograms(); // Change: Removed userId requirement for local disk access
       } else {
         _programs = [];
         _status = DataStatus.uninitialized;
@@ -46,13 +46,13 @@ class WorkoutProvider with ChangeNotifier {
     });
   }
 
-  Future<void> _loadWorkoutPrograms(String userId) async {
+  Future<void> _loadWorkoutPrograms() async { // Change: Signature updated to match local-first logic
     if (_status == DataStatus.loading) return;
     _status = DataStatus.loading;
     notifyListeners();
 
     try {
-      _programs = await _firestoreService.getAllWorkoutPrograms(userId);
+      _programs = await _localStorageService.getAllWorkoutPrograms(); // Change: Switched to local disk read (userId removed as disk is user-scoped)
       _status = DataStatus.loaded;
     } catch (e) {
       _errorMessage = "Error fetching workout programs: $e";
@@ -64,19 +64,18 @@ class WorkoutProvider with ChangeNotifier {
   Future<void> refreshPrograms() async {
     final userId = _authService.currentUser?.uid;
     if (userId != null) {
-      await _loadWorkoutPrograms(userId);
+      await _loadWorkoutPrograms();
     }
   }
 
   Future<void> renameWorkoutProgram(String programId, String newName) async {
-    final userId = _authService.currentUser?.uid;
-    if (userId == null) return;
-
+    // 🛡️ SHIELD: Removed Auth check. Local storage operations should not be blocked by network auth state.
     try {
-      await _firestoreService.updateProgramName(userId, programId, newName);
+      await _localStorageService.updateProgramName(programId, newName);
       final index = _programs.indexWhere((p) => p.id == programId);
       if (index != -1) {
-        _programs[index].name = newName;
+        // Fix: Use copyWith to ensure immutability and trigger clean state updates
+        _programs[index] = _programs[index].copyWith(name: newName);
         notifyListeners();
       }
     } catch (e) {
@@ -94,7 +93,7 @@ class WorkoutProvider with ChangeNotifier {
       final bool wasActiveProgram =
           _userProfileProvider.userProfile?.activeProgramId == programId;
 
-      await _firestoreService.deleteWorkoutProgram(userId, programId);
+      await _localStorageService.deleteWorkoutProgram(programId); // Change: Switched to local service for deletion
       _programs.removeWhere((p) => p.id == programId);
 
       // If it was the active program, notify UserProfileProvider to clear it.
@@ -110,11 +109,9 @@ class WorkoutProvider with ChangeNotifier {
   }
 
   Future<void> updateWorkoutProgram(WorkoutProgram program) async {
-    final userId = _authService.currentUser?.uid;
-    if (userId == null) return;
-
+    // 🛡️ SHIELD: Local persistence is now the primary source of truth; auth check removed.
     try {
-      await _firestoreService.updateWorkoutProgram(userId, program);
+      await _localStorageService.saveWorkoutProgram(program);
       final index = _programs.indexWhere((p) => p.id == program.id);
       if (index != -1) {
         _programs[index] = program;

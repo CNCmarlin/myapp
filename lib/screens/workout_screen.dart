@@ -50,11 +50,12 @@ class WorkoutScreen extends StatelessWidget {
               itemCount: activeProgram.days.length,
               itemBuilder: (context, index) {
                 final day = activeProgram.days[index];
-                return Card(
+               return Card(
                   margin:
                       const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
                   child: ExpansionTile(
-                    title: Text(day.dayName,
+                    // Fix: Added null fallback to resolve "String? can't be assigned to String" error
+                    title: Text(day.dayName ?? 'Unnamed Day',
                         style: Theme.of(context).textTheme.titleLarge),
                     children: [
                       Padding(

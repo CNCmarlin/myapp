@@ -80,9 +80,12 @@ class _EditWorkoutDayScreenState extends State<EditWorkoutDayScreen> {
   }
 
   void _onEditExercise(WorkoutDay day, int exerciseIndex) {
-    final exercise = day.exercises[exerciseIndex];
-    _showEditExerciseDialog(
-        day: day, exercise: exercise, exerciseIndex: exerciseIndex);
+    // Fix: Null-safe access to the exercises list
+    final exercise = day.exercises?[exerciseIndex];
+    if (exercise != null) {
+      _showEditExerciseDialog(
+          day: day, exercise: exercise, exerciseIndex: exerciseIndex);
+    }
   }
 
   void _showEditExerciseDialog(
@@ -127,9 +130,12 @@ class _EditWorkoutDayScreenState extends State<EditWorkoutDayScreen> {
                     sets: isEditing ? exercise.sets : [],
                   );
                   if (isEditing && exerciseIndex != null) {
-                    day.exercises[exerciseIndex] = updatedExercise;
+                    // Fix: Null-safe list assignment
+                    day.exercises?[exerciseIndex] = updatedExercise;
                   } else {
-                    day.exercises.add(updatedExercise);
+                    // Fix: Initialize list if null and add new exercise
+                    day.exercises ??= [];
+                    day.exercises!.add(updatedExercise);
                   }
                 });
               }
@@ -178,8 +184,16 @@ class _EditWorkoutDayScreenState extends State<EditWorkoutDayScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: _onWillPop,
+    // Fix: Replaced deprecated WillPopScope with PopScope
+    return PopScope(
+      canPop: !_hasUnsavedChanges,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final shouldPop = await _onWillPop();
+        if (shouldPop && context.mounted) {
+          Navigator.of(context).pop();
+        }
+      },
       child: Scaffold(
         appBar: AppBar(
           title: Text('Edit: ${_program.name}'),
@@ -214,7 +228,8 @@ class _EditWorkoutDayScreenState extends State<EditWorkoutDayScreen> {
               onExerciseDeleted: (exerciseIndex) {
                 setState(() {
                   _hasUnsavedChanges = true;
-                  day.exercises.removeAt(exerciseIndex);
+                  // Fix: Added null-aware operator to handle nullable exercises list
+                  day.exercises?.removeAt(exerciseIndex);
                 });
               },
             );
@@ -245,7 +260,8 @@ class _WorkoutDayCard extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8.0),
       child: ExpansionTile(
-        title: Text(day.dayName,
+        // Fix: Added null fallback for nullable dayName field
+        title: Text(day.dayName ?? 'Unnamed Day',
             style: const TextStyle(fontWeight: FontWeight.bold)),
         trailing: IconButton(
           icon: const Icon(Icons.drive_file_rename_outline, size: 20),
@@ -254,10 +270,11 @@ class _WorkoutDayCard extends StatelessWidget {
         ),
         initiallyExpanded: true,
         children: [
-          for (int i = 0; i < day.exercises.length; i++)
+          // Fix: Wrapped length in null-safe check and added null-aware access to list items
+          for (int i = 0; i < (day.exercises?.length ?? 0); i++)
             ListTile(
-              title: Text(day.exercises[i].name),
-              subtitle: Text('Target: ${day.exercises[i].programTarget}'),
+              title: Text(day.exercises?[i].name ?? 'Unknown Exercise'),
+              subtitle: Text('Target: ${day.exercises?[i].programTarget ?? 'N/A'}'),
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [

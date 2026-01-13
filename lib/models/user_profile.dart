@@ -1,14 +1,20 @@
+import 'package:isar/isar.dart';
 
+part 'user_profile.g.dart';
+
+@collection // LOCAL FIRST: Annotation required for Isar to recognize this class as a table
 class UserProfile {
+  Id id = Isar.autoIncrement;
   String? activityLevel;
   String? primaryGoal;
   String? activeProgramId;
   String? unitSystem;
   String? biologicalSex;
   double? bodyFatPercentage;
-  Map<String, dynamic>? weight;
-  Map<String, dynamic>? height;
-  Map<String, dynamic>? measurements;
+  WeightData? weight;
+  HeightData? height;
+  MeasurementData? measurements;
+  WeightData? goalWeight;
   bool onboardingCompleted;
   double? targetCalories;
   double? targetProtein;
@@ -19,7 +25,8 @@ class UserProfile {
   int exerciseDaysPerWeek;
   String? fitnessProficiency;
   int? age;
-  Map<String, dynamic>? goalWeight; // NEW FIELD
+  DateTime? lastSynced;
+  bool isDirty = false;
 
   UserProfile({
     this.activityLevel,
@@ -41,8 +48,23 @@ class UserProfile {
     this.exerciseDaysPerWeek = 3,
     this.fitnessProficiency = 'Beginner',
     this.age,
-    this.goalWeight, // NEW FIELD
+    this.goalWeight,
+    this.lastSynced,
+    this.isDirty = false,
   });
+
+  // SHIELD: Legacy Getters to support existing code expecting Maps
+  @ignore // DETERMINISM: Tells Isar not to attempt persisting this unsupported type
+  Map<String, dynamic>? get weightMap => weight?.toMap();
+  
+  @ignore // DETERMINISM: Tells Isar not to attempt persisting this unsupported type
+  Map<String, dynamic>? get heightMap => height?.toMap();
+  
+  @ignore // DETERMINISM: Tells Isar not to attempt persisting this unsupported type
+  Map<String, dynamic>? get measurementsMap => measurements?.toMap();
+  
+  @ignore // DETERMINISM: Tells Isar not to attempt persisting this unsupported type
+  Map<String, dynamic>? get goalWeightMap => goalWeight?.toMap();
 
   Map<String, dynamic> toMap() {
     return {
@@ -50,11 +72,11 @@ class UserProfile {
       'primaryGoal': primaryGoal,
       'biologicalSex': biologicalSex,
       'bodyFatPercentage': bodyFatPercentage,
-      'weight': weight,
+      'weight': weight?.toMap(),
       'activeProgramId': activeProgramId,
       'unitSystem': unitSystem,
-      'height': height,
-      'measurements': measurements,
+      'height': height?.toMap(),
+      'measurements': measurements?.toMap(),
       'onboardingCompleted': onboardingCompleted,
       'targetCalories': targetCalories,
       'targetProtein': targetProtein,
@@ -65,7 +87,7 @@ class UserProfile {
       'exerciseDaysPerWeek': exerciseDaysPerWeek,
       'fitnessProficiency': fitnessProficiency,
       'age': age,
-      'goalWeight': goalWeight, // NEW FIELD
+      'goalWeight': goalWeight?.toMap(),
     };
   }
 
@@ -77,20 +99,25 @@ class UserProfile {
       unitSystem: map['unitSystem'] ?? 'imperial',
       biologicalSex: map['biologicalSex'],
       bodyFatPercentage: (map['bodyFatPercentage'] as num?)?.toDouble(),
-      weight: map['weight'],
-      height: map['height'],
-      measurements: map['measurements'],
+      weight: map['weight'] != null ? WeightData.fromMap(map['weight']) : null,
+      height: map['height'] != null ? HeightData.fromMap(map['height']) : null,
+      measurements: map['measurements'] != null
+          ? MeasurementData.fromMap(map['measurements'])
+          : null,
       onboardingCompleted: map['onboardingCompleted'] ?? false,
       targetCalories: (map['targetCalories'] as num?)?.toDouble() ?? 0.0,
       targetProtein: (map['targetProtein'] as num?)?.toDouble() ?? 0.0,
       targetCarbs: (map['targetCarbs'] as num?)?.toDouble() ?? 0.0,
       targetFat: (map['targetFat'] as num?)?.toDouble() ?? 0.0,
       prefersLowCarb: map['prefersLowCarb'] ?? false,
-      weeklyWeightLossGoal: (map['weeklyWeightLossGoal'] as num?)?.toDouble() ?? 1.0,
+      weeklyWeightLossGoal:
+          (map['weeklyWeightLossGoal'] as num?)?.toDouble() ?? 1.0,
       exerciseDaysPerWeek: (map['exerciseDaysPerWeek'] as num?)?.toInt() ?? 3,
       fitnessProficiency: map['fitnessProficiency'] ?? 'Beginner',
       age: map['age'] as int?,
-      goalWeight: map['goalWeight'], // NEW FIELD
+      goalWeight: map['goalWeight'] != null
+          ? WeightData.fromMap(map['goalWeight'])
+          : null,
     );
   }
 
@@ -101,9 +128,9 @@ class UserProfile {
     String? biologicalSex,
     String? unitSystem,
     double? bodyFatPercentage,
-    Map<String, dynamic>? weight,
-    Map<String, dynamic>? height,
-    Map<String, dynamic>? measurements,
+    WeightData? weight,
+    HeightData? height,
+    MeasurementData? measurements,
     bool? onboardingCompleted,
     double? targetCalories,
     double? targetProtein,
@@ -114,7 +141,9 @@ class UserProfile {
     int? exerciseDaysPerWeek,
     String? fitnessProficiency,
     int? age,
-    Map<String, dynamic>? goalWeight, // NEW FIELD
+    WeightData? goalWeight,
+    DateTime? lastSynced,
+    bool? isDirty,
   }) {
     return UserProfile(
       activityLevel: activityLevel ?? this.activityLevel,
@@ -136,7 +165,83 @@ class UserProfile {
       exerciseDaysPerWeek: exerciseDaysPerWeek ?? this.exerciseDaysPerWeek,
       fitnessProficiency: fitnessProficiency ?? this.fitnessProficiency,
       age: age ?? this.age,
-      goalWeight: goalWeight ?? this.goalWeight, // NEW FIELD
+      goalWeight: goalWeight ?? this.goalWeight,
+      lastSynced: lastSynced ?? this.lastSynced,
+      isDirty: isDirty ?? this.isDirty,
     );
   }
-} 
+}
+
+@embedded
+class WeightData {
+  double? value;
+  String? unit;
+  WeightData({this.value, this.unit});
+
+  dynamic operator [](String key) {
+    if (key == 'value') return value;
+    if (key == 'unit') return unit;
+    return null;
+  }
+
+  static WeightData? fromAny(dynamic input) {
+    if (input is WeightData) return input;
+    if (input is Map<String, dynamic>) return WeightData.fromMap(input);
+    return null;
+  }
+
+  Map<String, dynamic> toMap() => {'value': value, 'unit': unit};
+  factory WeightData.fromMap(Map<String, dynamic> map) =>
+      WeightData(value: (map['value'] as num?)?.toDouble(), unit: map['unit']);
+}
+
+@embedded
+class HeightData {
+  double? value;
+  String? unit;
+  HeightData({this.value, this.unit});
+
+  dynamic operator [](String key) {
+    if (key == 'value') return value;
+    if (key == 'unit') return unit;
+    return null;
+  }
+
+  static HeightData? fromAny(dynamic input) {
+    if (input is HeightData) return input;
+    if (input is Map<String, dynamic>) return HeightData.fromMap(input);
+    return null;
+  }
+
+  Map<String, dynamic> toMap() => {'value': value, 'unit': unit};
+  factory HeightData.fromMap(Map<String, dynamic> map) =>
+      HeightData(value: (map['value'] as num?)?.toDouble(), unit: map['unit']);
+}
+
+@embedded
+class MeasurementData {
+  double? waist;
+  double? neck;
+  String? unit;
+  MeasurementData({this.waist, this.neck, this.unit});
+
+  dynamic operator [](String key) {
+    if (key == 'waist') return waist;
+    if (key == 'neck') return neck;
+    if (key == 'unit') return unit;
+    return null;
+  }
+
+  static MeasurementData? fromAny(dynamic input) {
+    if (input is MeasurementData) return input;
+    if (input is Map<String, dynamic>) return MeasurementData.fromMap(input);
+    return null;
+  }
+
+  Map<String, dynamic> toMap() => {'waist': waist, 'neck': neck, 'unit': unit};
+  factory MeasurementData.fromMap(Map<String, dynamic> map) => MeasurementData(
+        waist: (map['waist'] as num?)?.toDouble(),
+        neck: (map['neck'] as num?)?.toDouble(),
+        unit: map['unit'],
+      );
+}

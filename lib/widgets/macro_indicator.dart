@@ -33,7 +33,7 @@ class MacroIndicator extends StatelessWidget {
               CircularProgressIndicator(
                 value: progress.clamp(0.0, 1.0),
                 strokeWidth: 6,
-                backgroundColor: color.withOpacity(0.2),
+                backgroundColor: color.withValues(alpha: 0.2),
                 color: color,
               ),
               Center(

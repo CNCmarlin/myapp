@@ -162,9 +162,11 @@ class _ProgramCard extends StatelessWidget {
                             },
                           ),
                         ),
-                      ).then((_) {
-                        // Refresh programs when returning
-                        context.read<WorkoutProvider>().refreshPrograms();
+                     ).then((_) {
+                        if (context.mounted) {
+                          // Fix: Guarded with context.mounted to resolve the async gap warning after Navigator.push returns
+                          context.read<WorkoutProvider>().refreshPrograms();
+                        }
                       });
                     },
                   ),

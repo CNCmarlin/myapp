@@ -29,15 +29,19 @@ class _AppHubScreenState extends State<AppHubScreen> {
   }
 
   Future<void> _selectDate(BuildContext context) async {
+    // 🛡️ SHIELD: Capture reference before the async gap to minimize logic after await
+    final dateProvider = Provider.of<DateProvider>(context, listen: false);
+
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate:
-          Provider.of<DateProvider>(context, listen: false).selectedDate,
+      initialDate: dateProvider.selectedDate,
       firstDate: DateTime(2000),
       lastDate: DateTime(2101),
     );
-    if (picked != null) {
-      Provider.of<DateProvider>(context, listen: false).updateDate(picked);
+
+    // Fix: Using context.mounted on the BuildContext instance to satisfy the specific diagnostic requirement
+    if (picked != null && context.mounted) {
+      dateProvider.updateDate(picked);
     }
   }
 

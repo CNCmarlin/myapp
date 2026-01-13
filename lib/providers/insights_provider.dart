@@ -5,16 +5,26 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../models/insight_data.dart';
 import '../services/auth_service.dart';
-import '../services/firestore_service.dart';
 import '../services/insights_service.dart';
+import '../services/local_storage_service.dart';
 
 // Enum to track which specific insight is being generated
 enum InsightGenerationType { none, workout, nutrition, summary }
 
 class InsightsProvider with ChangeNotifier {
   final AuthService _authService;
-  final FirestoreService _firestoreService;
-  final InsightsService _insightsService = InsightsService();
+  final LocalStorageService _localStorageService; 
+  final InsightsService _insightsService;
+
+  InsightsProvider({
+    required AuthService authService,
+    required LocalStorageService localStorageService,
+    required InsightsService insightsService, // Fix: Injected to resolve missing argument errors
+  })  : _authService = authService,
+        _localStorageService = localStorageService,
+        _insightsService = insightsService {
+    _subscribeToInsights();
+  }
 
   StreamSubscription? _insightsSubscription;
 
@@ -42,14 +52,6 @@ class InsightsProvider with ChangeNotifier {
           i.insightType == InsightType.weeklySummary)
       .toList();
 
-  InsightsProvider({
-    required AuthService authService,
-    required FirestoreService firestoreService,
-  })  : _authService = authService,
-        _firestoreService = firestoreService {
-    _subscribeToInsights();
-  }
-
   void _subscribeToInsights() {
     final userId = _authService.currentUser?.uid;
     if (userId == null) return;
@@ -58,8 +60,7 @@ class InsightsProvider with ChangeNotifier {
     notifyListeners();
     _insightsSubscription?.cancel();
 
-    _insightsSubscription =
-        _firestoreService.getInsightsStream(userId).listen((insightsData) {
+    _insightsSubscription = _localStorageService.watchInsights().listen((insightsData) {
            // --- DEBUG LOGGING ---
       if (kDebugMode) {
         print('[DEBUG] InsightsProvider stream updated. Received ${insightsData.length} insights.');

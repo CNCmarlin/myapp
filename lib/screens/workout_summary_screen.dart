@@ -1,11 +1,12 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:myapp/services/auth_service.dart';
 import '../models/workout_data.dart';
 import '../services/ai_service.dart';
 import '../providers/user_profile_provider.dart';
 import 'package:provider/provider.dart';
+
+import '../services/secure_storage_service.dart';
 
 class WorkoutSummaryScreen extends StatefulWidget {
   final Workout workout;
@@ -30,7 +31,7 @@ class _WorkoutSummaryScreenState extends State<WorkoutSummaryScreen> {
   void initState() {
     super.initState();
     // CORRECTED: Instantiate AIService here using the context
-    _aiService = AIService(authService: context.read<AuthService>());
+     _aiService = AIService(secureStorage: context.read<SecureStorageService>());
     _fetchInsights();
   }
 
@@ -46,8 +47,8 @@ class _WorkoutSummaryScreenState extends State<WorkoutSummaryScreen> {
       setState(() => _isLoadingInsights = false);
       return;
     }
-    // Pass the userProfile object to the service
-    final insights = await _aiService.getWorkoutInsights(
+
+    final insights = await _aiService.getWorkoutSummary(
         widget.workout, widget.lastSessionData, userProfile);
 
     if (mounted) {
@@ -227,42 +228,28 @@ class _WorkoutSummaryScreenState extends State<WorkoutSummaryScreen> {
     if (_aiInsights == null || _aiInsights!.isEmpty) {
       return const Center(child: Text('Could not generate AI insights.'));
     }
-    // This assumes the AI response uses "---" as a separator.
-    // Consider a more robust parsing method like JSON if the AI can provide it.
-    final parts = _aiInsights!.split('---');
-    final insights = parts.isNotEmpty
-        ? parts[0].replaceFirst('Overall Session Insights:', '').trim()
-        : '';
-    final notes = parts.length > 1
-        ? parts[1].replaceFirst('Performance Notes:', '').trim()
-        : '';
-    final recommendations = parts.length > 2
-        ? parts[2].replaceFirst('Recommendations for Next Time:', '').trim()
-        : '';
 
+    // 🛡️ SHIELD: Unified Summary Display
+    // Change: Removed '---' splitting logic in favor of a single conversational block.
+    // Rationale: The getWorkoutSummary method returns a concise, formatted markdown string.
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (insights.isNotEmpty) ...[
-          Text('Overall Session Insights',
-              style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 8),
-          Text(insights),
-          const SizedBox(height: 24),
-        ],
-        if (notes.isNotEmpty) ...[
-          Text('Performance Notes',
-              style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 8),
-          Text(notes),
-          const SizedBox(height: 24),
-        ],
-        if (recommendations.isNotEmpty) ...[
-          Text('Recommendations for Next Time',
-              style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 8),
-          Text(recommendations),
-        ],
+        Text('Coach\'s Summary',
+            style: Theme.of(context).textTheme.titleLarge),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.blue.withOpacity(0.05),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.blue.withAlpha(30)),
+          ),
+          child: Text(
+            _aiInsights!,
+            style: const TextStyle(fontSize: 15, height: 1.4),
+          ),
+        ),
         const SizedBox(height: 16),
         const Text(
           'AI-generated insights are for informational purposes only and are not a substitute for professional medical or fitness advice.',

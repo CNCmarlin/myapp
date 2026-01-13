@@ -7,15 +7,13 @@ import '../models/user_profile.dart';
 import '../providers/user_profile_provider.dart';
 import '../providers/workout_provider.dart';
 import '../services/assistant_service.dart';
-import '../services/auth_service.dart';
-import '../services/firestore_service.dart';
+import '../services/local_storage_service.dart';
 
 class ChatProvider with ChangeNotifier {
-  final AssistantService _assistantService = AssistantService();
-  final FirestoreService _firestoreService = FirestoreService();
+  final AssistantService _assistantService;
+  final LocalStorageService _localStorageService; // Change: Replaced Firestore with LocalStorage
   final UserProfileProvider _userProfileProvider;
   final WorkoutProvider _workoutProvider;
-  final AuthService _authService;
 
   final List<ChatMessage> _messages = [];
   bool _isLoading = false;
@@ -26,30 +24,42 @@ class ChatProvider with ChangeNotifier {
   ChatProvider({
     required UserProfileProvider userProfileProvider,
     required WorkoutProvider workoutProvider,
-    required AuthService authService,
+    required LocalStorageService localStorageService, // Change: Injected local storage
+    required AssistantService assistantService,
   })  : _userProfileProvider = userProfileProvider,
         _workoutProvider = workoutProvider,
-        _authService = authService;
+        _localStorageService = localStorageService,
+        _assistantService = assistantService {
+    _loadLocalHistory(); // Change: Auto-load history on initialization
+  }
+
+  Future<void> _loadLocalHistory() async {
+    final history = await _localStorageService.getChatHistory();
+    _messages.addAll(history);
+    notifyListeners();
+  }
 
   Future<void> sendMessage(String text) async {
     final UserProfile? userProfile = _userProfileProvider.userProfile;
-    final String? userId = _authService.currentUser?.uid;
 
-    if (userProfile == null || userId == null) {
-      _messages.insert(0,
-          ChatMessage(text: "Error: User profile not loaded.", isUser: false));
+    if (userProfile == null) {
+      _messages.insert(0, ChatMessage(text: "Error: User profile not loaded.", isUser: false, timestamp: DateTime.now()));
       notifyListeners();
       return;
     }
 
-    _messages.insert(0, ChatMessage(text: text, isUser: true));
+    final userMsg = ChatMessage(text: text, isUser: true, timestamp: DateTime.now());
+    _messages.insert(0, userMsg);
+    await _localStorageService.saveChatMessage(userMsg); // Change: Immediate local save
+    
+    _userProfileProvider.triggerBackgroundSync();
+
     _isLoading = true;
     notifyListeners();
 
-    // UPDATED: Fetch context before calling the assistant
-    final lastWorkout = await _firestoreService.getLatestWorkoutLog(userId);
-    final recentNutritionLogs =
-        await _firestoreService.getRecentNutritionLogs(userId);
+    // 🛡️ SHIELD: Swapped Firestore context fetch for Local disk read
+    final lastWorkout = await _localStorageService.getLatestWorkout();
+    final recentNutritionLogs = await _localStorageService.getRecentNutrition(3);
 
     final response = await _assistantService.getAssistantResponse(
       prompt: text,
@@ -61,29 +71,42 @@ class ChatProvider with ChangeNotifier {
 
     switch (response.type) {
       case AssistantResponseType.text:
-        _messages.insert(
-            0, ChatMessage(text: response.textResponse!, isUser: false));
+        // Fix: Created message with required timestamp and persisted it locally
+        final assistantMsg = ChatMessage(
+          text: response.textResponse!, 
+          isUser: false, 
+          timestamp: DateTime.now(),
+        );
+        _messages.insert(0, assistantMsg);
+        await _localStorageService.saveChatMessage(assistantMsg);
+        _userProfileProvider.triggerBackgroundSync();
         break;
       case AssistantResponseType.program:
         if (response.programResponse != null) {
           try {
-            final newProgramId = await _firestoreService.saveNewWorkoutProgram(
-                userId, response.programResponse!);
+            // Fix: Swapped legacy Firestore save for LocalStorage and removed userId dependency
+            final program = response.programResponse!;
+            await _localStorageService.saveWorkoutProgram(program);
+            
+            // Refresh and set active using the program's internal string ID
             await _workoutProvider.refreshPrograms();
-            await _userProfileProvider.updateActiveProgram(newProgramId);
+            await _userProfileProvider.updateActiveProgram(program.id);
 
-            _messages.insert(
-                0,
-                ChatMessage(
-                    text:
-                        "I've created and saved the '${response.programResponse!.name}' program for you. I've also set it as your active program.",
-                    isUser: false));
+            final assistantMsg = ChatMessage(
+              text: "I've created and saved the '${program.name}' program for you. I've also set it as your active program.",
+              isUser: false,
+              timestamp: DateTime.now(), // Fix: Added required timestamp for Isar
+            );
+            _messages.insert(0, assistantMsg);
+            await _localStorageService.saveChatMessage(assistantMsg); // Fix: Persist AI response
+            _userProfileProvider.triggerBackgroundSync();
           } catch (e) {
-            _messages.insert(
-                0,
-                ChatMessage(
-                    text: "I created a program, but failed to save it: $e",
-                    isUser: false));
+            final errorMsg = ChatMessage(
+              text: "I created a program, but failed to save it locally: $e",
+              isUser: false,
+              timestamp: DateTime.now(),
+            );
+            _messages.insert(0, errorMsg);
           }
         }
         break;

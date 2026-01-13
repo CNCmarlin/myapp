@@ -5,7 +5,9 @@ import 'package:myapp/models/user_profile.dart';
 import 'package:myapp/services/nutrition_goal_service.dart';
 import 'package:provider/provider.dart';
 import '../../../providers/onboarding_provider.dart';
-import 'package:flutter/services.dart'; // Import for input formatters
+import 'package:flutter/services.dart';
+
+import '../../../services/ai_service.dart'; // Import for input formatters
 
 class NutritionGoalsPage extends StatefulWidget {
   final GlobalKey<FormState> formKey;
@@ -56,7 +58,7 @@ class _NutritionGoalsPageState extends State<NutritionGoalsPage> {
   Future<void> _getAiSuggestions(bool fromCalories) async {
     setState(() => _isAiLoading = true);
     final provider = context.read<OnboardingProvider>();
-    final service = NutritionGoalService();
+    final service = NutritionGoalService(aiService: context.read<AIService>());
 
     Map<String, dynamic>? suggestions;
 

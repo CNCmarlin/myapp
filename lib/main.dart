@@ -11,11 +11,17 @@ import '../providers/chat_provider.dart';
 import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
 import '../services/local_storage_service.dart';
+import '../services/google_drive_service.dart';
+import '../services/secure_storage_service.dart';
+import '../services/sync_service.dart';
 import '../providers/user_profile_provider.dart';
 import '../widgets/auth_wrapper.dart';
 import '../providers/insights_provider.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
-import '../providers/workout_provider.dart'; // NEW IMPORT
+import '../providers/workout_provider.dart';
+import 'services/ai_service.dart';
+import 'services/assistant_service.dart';
+import 'services/insights_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -40,27 +46,70 @@ Future<void> main() async {
         // Foundational Services
         Provider<AuthService>(create: (_) => AuthService()),
         Provider<FirestoreService>(create: (_) => FirestoreService()),
-        Provider<LocalStorageService>(
-            create: (_) =>
-                localStorageService), // Change: Inject local storage as a foundational service
+        Provider<LocalStorageService>(create: (_) => localStorageService),
+        // 🛡️ SHIELD: Stage 3 Sync Provider
+        // Change: Injected GoogleDriveService using the credentials from AuthService
+        Provider<SecureStorageService>(create: (_) => const SecureStorageService()),
+        // 🛡️ SHIELD: Agnostic AI Engine
+        // Change: Added AIService to the foundational provider list.
+        // Rationale: Required for local-first nutrition parsing and goal calculations.
+        Provider<AIService>(
+          create: (context) => AIService(
+            secureStorage: context.read<SecureStorageService>(),
+          ),
+        ),
+        // Change: Added AssistantService to the foundational provider list.
+        Provider<AssistantService>(
+          create: (context) => AssistantService(
+            secureStorage: context.read<SecureStorageService>(),
+          ),
+        ),
+        Provider<GoogleDriveService>(
+          create: (context) => GoogleDriveService(
+            context.read<AuthService>().googleSignIn,
+          ),
+        ),
+
+        // 🛡️ SHIELD: Stage 3 Synchronization Manager
+        // Change: Added SyncService to coordinate local storage and cloud backups
+        Provider<SyncService>(
+          create: (context) => SyncService(
+            storageService: context.read<LocalStorageService>(),
+            driveService: context.read<GoogleDriveService>(),
+          ),
+        ),
 
         // App State Providers
         // ChangeNotifierProvider(create: (_) => ChatProvider()), // REMOVE THIS LINE
         ChangeNotifierProvider(create: (_) => DateProvider()),
 
-        ChangeNotifierProvider(
-          create: (context) => InsightsProvider(
-            authService: context.read<AuthService>(),
-            firestoreService: context.read<FirestoreService>(),
+        // FOUNDATIONAL: Stage 4 Insights Logic
+        Provider<InsightsService>(
+          create: (context) => InsightsService(
+            aiService: context.read<AIService>(),
+            storage: context.read<LocalStorageService>(),
           ),
         ),
 
-        // UserProfileProvider is now focused solely on the user's profile.
+        // 🛡️ SHIELD: Local-First Insights Provider
+        // Change: Swapped firestoreService for localStorageService and insightsService.
+        // Rationale: Resolves all 'missing_required_argument' and 'undefined_named_parameter' diagnostics.
+        ChangeNotifierProvider(
+          create: (context) => InsightsProvider(
+            authService: context.read<AuthService>(),
+            localStorageService: context.read<LocalStorageService>(),
+            insightsService: context.read<InsightsService>(),
+          ),
+        ),
+
+        // UserProfileProvider is now the coordinator for local data and cloud sync.
         ChangeNotifierProvider(
           create: (context) => UserProfileProvider(
             authService: context.read<AuthService>(),
-            // Fix: Swapped legacy FirestoreService for LocalStorageService
             localStorageService: context.read<LocalStorageService>(),
+            syncService: context.read<SyncService>(),
+            aiService: context.read<AIService>(),
+            
           ),
         ),
 
@@ -84,8 +133,10 @@ Future<void> main() async {
           create: (context) => NutritionLogProvider(
             userId: context.read<AuthService>().currentUser?.uid ?? '',
             date: context.read<DateProvider>().selectedDate,
-            authService: context.read<AuthService>(), // ADD THIS
+            // Fix: Replaced authService with secureStorageService to match new constructor
+            secureStorageService: context.read<SecureStorageService>(), 
             localStorageService: context.read<LocalStorageService>(),
+            userProfileProvider: context.read<UserProfileProvider>(),
           ),
           update: (context, userProfileProvider, dateProvider,
               previousNutritionLogProvider) {
@@ -94,14 +145,13 @@ Future<void> main() async {
             final newDate = dateProvider.selectedDate;
 
             if (previousNutritionLogProvider == null || userId.isEmpty) {
-              // Inside MultiProvider -> ChangeNotifierProxyProvider2
               return NutritionLogProvider(
                 userId: userId,
                 date: newDate,
-                userProfile: newProfile,
-                authService: context.read<AuthService>(),
-                localStorageService:
-                    context.read<LocalStorageService>(), // ADD THIS LINE
+                // Fix: Replaced authService with secureStorageService here as well
+                secureStorageService: context.read<SecureStorageService>(),
+                localStorageService: context.read<LocalStorageService>(),
+                userProfileProvider: userProfileProvider,
               );
             }
 
@@ -111,20 +161,24 @@ Future<void> main() async {
           },
         ),
 
-        // CORRECTED: This single entry for ChatProvider handles all dependencies.
+        // CORRECTED: Added localStorageService injection to both initialization blocks
         ChangeNotifierProxyProvider2<UserProfileProvider, WorkoutProvider,
             ChatProvider>(
           create: (context) => ChatProvider(
             userProfileProvider: context.read<UserProfileProvider>(),
             workoutProvider: context.read<WorkoutProvider>(),
-            authService: context.read<AuthService>(), // Add this line
+            localStorageService:
+                context.read<LocalStorageService>(), // Fix: Pass local storage
+                assistantService: context.read<AssistantService>(),
           ),
           update: (context, userProfileProvider, workoutProvider,
                   previousChatProvider) =>
               ChatProvider(
             userProfileProvider: userProfileProvider,
             workoutProvider: workoutProvider,
-            authService: context.read<AuthService>(), // Add this line
+            localStorageService:
+                context.read<LocalStorageService>(), // Fix: Pass local storage
+                assistantService: context.read<AssistantService>(),
           ),
         ),
       ],

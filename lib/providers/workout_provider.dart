@@ -109,7 +109,6 @@ class WorkoutProvider with ChangeNotifier {
   }
 
   Future<void> updateWorkoutProgram(WorkoutProgram program) async {
-    // 🛡️ SHIELD: Local persistence is now the primary source of truth; auth check removed.
     try {
       await _localStorageService.saveWorkoutProgram(program);
       final index = _programs.indexWhere((p) => p.id == program.id);
@@ -117,6 +116,11 @@ class WorkoutProvider with ChangeNotifier {
         _programs[index] = program;
         notifyListeners();
       }
+
+      // 🛡️ SHIELD: Automatic Stage 3 Cloud Backup
+      // Change: Trigger background sync after local save. 
+      // Rationale: Ensures cloud durability without blocking UI response time.
+      _userProfileProvider.triggerBackgroundSync(); 
     } catch (e) {
       _errorMessage = 'Error updating program: $e';
       notifyListeners();

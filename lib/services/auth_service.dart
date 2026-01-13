@@ -3,19 +3,26 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import '../models/user_profile.dart'; // Make sure this path is correct
-import '../services/firestore_service.dart'; // Make sure this path is correct
+import 'package:googleapis/drive/v3.dart' as drive;
 
 class AuthService {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn();
-  final FirestoreService _firestoreService = FirestoreService();
+  final GoogleSignIn _googleSignIn = GoogleSignIn(
+    scopes: [
+      'email',
+      drive.DriveApi.driveAppdataScope,
+    ],
+  );
 
   // Stream to notify the app of authentication state changes
   Stream<User?> get authStateChanges => _firebaseAuth.authStateChanges();
 
   // Get current user
   User? get currentUser => _firebaseAuth.currentUser;
+
+  // 🛡️ SHIELD: Stage 3 Sync Accessor
+  // Change: Added getter to allow GoogleDriveService to access the authenticated session
+  GoogleSignIn get googleSignIn => _googleSignIn;
 
   // In lib/services/auth_service.dart, inside the AuthService class
 
@@ -45,33 +52,21 @@ class AuthService {
         print('user credentials signed in successfully');
       }
 
-      // 5. CRITICAL: Check if the user is new. If so, create their profile document.
+     // 5. 🛡️ SHIELD: Local-First Session Initialization
+      // Change: Removed Firestore-specific creation logic and fixed orphaned braces.
+      // Logic: New user detection now triggers local onboarding via UI, not a background Firestore write.
       if (userCredential.additionalUserInfo?.isNewUser ?? false) {
         if (kDebugMode) {
-          print('creating required user objects');
+          debugPrint('New user detected. Simply Fit will initialize local state via Onboarding.');
         }
-        // FIX: This UserProfile object now EXACTLY matches the requirements
-        // of our 'isValidNewUserProfile' security rule.
-        final newUserProfile = UserProfile(
-          onboardingCompleted: false,
-          unitSystem: 'imperial',
-          targetCalories: 0.0,
-          targetProtein: 0.0,
-          targetCarbs: 0.0,
-          targetFat: 0.0,
-          // All other fields will be null or use their defaults from the model
-        );
-        if (kDebugMode) {
-          print('created user profile required objects');
-        }
-        await _firestoreService.createNewUserProfile(
-            userCredential.user!, newUserProfile);
       }
+
       if (kDebugMode) {
-        print('user profile created successfully');
+        debugPrint('Authentication successful for UID: ${userCredential.user?.uid}');
       }
 
       return userCredential;
+
     } catch (e) {
       if (kDebugMode) {
         print('Error during Google Sign-In: $e');

@@ -4,15 +4,16 @@ import 'package:flutter/material.dart';
 import '../models/meal_data.dart';
 import '../models/user_profile.dart';
 import '../services/ai_service.dart';
-import '../services/auth_service.dart'; 
 import '../services/local_storage_service.dart'; // Change: Imported LocalStorageService
 import '../services/meal_insight_service.dart';
+import '../services/secure_storage_service.dart';
 import '../utils/nutrition_utils.dart';
+import '../providers/user_profile_provider.dart';
 
 class NutritionLogProvider extends ChangeNotifier {
   final String userId;
   DateTime _date;
-  UserProfile? userProfile;
+  final UserProfileProvider _userProfileProvider;
 
   final LocalStorageService _localStorageService; // Change: Replaced FirestoreService with LocalStorageService
   late final AIService _aiService;
@@ -30,12 +31,13 @@ class NutritionLogProvider extends ChangeNotifier {
   NutritionLogProvider({
     required this.userId,
     required DateTime date,
-    required AuthService authService,
-    required LocalStorageService localStorageService, // Change: Injected LocalStorageService dependency
-    this.userProfile,
-  }) : _date = date,
-       _localStorageService = localStorageService { // Change: Initialized private service
-    _aiService = AIService(authService: authService); 
+    required SecureStorageService secureStorageService,
+    required LocalStorageService localStorageService, 
+    required UserProfileProvider userProfileProvider,
+  })  : _date = date,
+        _userProfileProvider = userProfileProvider,
+        _localStorageService = localStorageService {
+    _aiService = AIService(secureStorage: secureStorageService);
     _loadLogForDate();
   }
 
@@ -47,14 +49,13 @@ class NutritionLogProvider extends ChangeNotifier {
       _date = newDate;
       needsReload = true;
     }
-    userProfile = newProfile;
     if (needsReload) {
       _loadLogForDate();
     }
   }
 
   // ... rest of the file remains the same ...
- Future<void> _loadLogForDate() async {
+  Future<void> _loadLogForDate() async {
     _isLoading = true;
     notifyListeners();
     // Change: Logic swapped to fetch log from local disk by date
@@ -66,8 +67,8 @@ class NutritionLogProvider extends ChangeNotifier {
 
   Future<void> _saveLog() async {
     if (_log != null) {
-      // Change: Swapped Firestore save for immediate Isar persistence
       await _localStorageService.saveNutritionLog(_log!);
+      _userProfileProvider.triggerBackgroundSync();
     }
   }
 
@@ -105,12 +106,17 @@ class NutritionLogProvider extends ChangeNotifier {
     _isAnalyzing = true;
     notifyListeners();
 
-    final meal = await _aiService.getMealFromText(text);
+    final profile = _userProfileProvider.userProfile;
+    if (profile == null) return false;
+
+    final meal = await _aiService.getMealFromText(text, profile);
 
     if (meal != null) {
-      final mealName = meal.mealName ?? 'Unknown Meal'; // Change: Fallback for nullable field
+      final mealName = meal.mealName ??
+          'Unknown Meal'; // Change: Fallback for nullable field
       final mealType = getMealTypeFromName(mealName);
-      for (var food in meal.foods ?? []) { // Change: Null-safe iterator for foods list
+      for (var food in meal.foods ?? []) {
+        // Change: Null-safe iterator for foods list
         addFoodToMeal(mealType, food);
       }
       _log?.aiGeneratedMeals.add(meal);
@@ -130,7 +136,9 @@ class NutritionLogProvider extends ChangeNotifier {
 
   String? getInsightForMeal(String mealType) {
     final relevantAiMeal = _log?.aiGeneratedMeals.lastWhere(
-      (meal) => getMealTypeFromName(meal.mealName ?? '') == mealType, // Change: Added null fallback for comparison
+      (meal) =>
+          getMealTypeFromName(meal.mealName ?? '') ==
+          mealType, // Change: Added null fallback for comparison
       orElse: () => Meal(
           mealName: '', foods: [], protein: 0, carbs: 0, fat: 0, calories: 0),
     );
@@ -138,9 +146,10 @@ class NutritionLogProvider extends ChangeNotifier {
   }
 
   Future<void> _generateAndSaveInsight(Meal meal) async {
-    if (userProfile != null) {
+    final profile = _userProfileProvider.userProfile; // Change: Use the centralized provider
+    if (profile != null) {
       final insightText = await _insightService.generateInsight(
-        userProfile: userProfile!,
+        userProfile: profile,
         meal: meal,
       );
       if (insightText != null) {

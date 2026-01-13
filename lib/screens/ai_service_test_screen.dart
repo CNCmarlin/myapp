@@ -9,6 +9,8 @@ import 'package:myapp/models/workout_data.dart';
 import 'package:myapp/services/ai_service.dart';
 import 'package:myapp/services/auth_service.dart';
 
+import '../services/secure_storage_service.dart';
+
 class AIServiceTestScreen extends StatefulWidget {
   const AIServiceTestScreen({super.key});
 
@@ -25,7 +27,7 @@ class _AIServiceTestScreenState extends State<AIServiceTestScreen> {
   void initState() {
     super.initState();
     // Initialize the service exactly as we would in the real screen
-    _aiService = AIService(authService: context.read<AuthService>());
+    _aiService = AIService(secureStorage: context.read<SecureStorageService>());
   }
 
   Future<void> _runTest() async {

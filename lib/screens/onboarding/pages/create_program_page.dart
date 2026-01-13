@@ -9,6 +9,7 @@ import 'package:myapp/services/auth_service.dart';
 import 'package:myapp/services/firestore_service.dart';
 import 'package:provider/provider.dart';
 import '../../../providers/onboarding_provider.dart';
+import '../../../services/secure_storage_service.dart';
 
 
 class CreateProgramPage extends StatefulWidget {
@@ -23,7 +24,16 @@ enum CreationMode { manual, ai }
 
 class _CreateProgramPageState extends State<CreateProgramPage> {
   final _textController = TextEditingController();
-  final _assistantService = AssistantService();
+  late final AssistantService _assistantService;
+
+  @override
+  void initState() {
+    super.initState();
+    // Fix: Using context to provide the required secure storage for the AssistantService
+    _assistantService = AssistantService(
+      secureStorage: context.read<SecureStorageService>(),
+    );
+  }
 
   CreationMode _mode = CreationMode.ai;
   int _numberOfDays = 3;

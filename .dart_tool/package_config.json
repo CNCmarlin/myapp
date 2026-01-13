@@ -296,6 +296,42 @@
       "languageVersion": "3.4"
     },
     {
+      "name": "flutter_secure_storage",
+      "rootUri": "file:///home/user/.pub-cache/hosted/pub.dev/flutter_secure_storage-9.2.4",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
+    },
+    {
+      "name": "flutter_secure_storage_linux",
+      "rootUri": "file:///home/user/.pub-cache/hosted/pub.dev/flutter_secure_storage_linux-1.2.3",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
+    },
+    {
+      "name": "flutter_secure_storage_macos",
+      "rootUri": "file:///home/user/.pub-cache/hosted/pub.dev/flutter_secure_storage_macos-3.1.3",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
+    },
+    {
+      "name": "flutter_secure_storage_platform_interface",
+      "rootUri": "file:///home/user/.pub-cache/hosted/pub.dev/flutter_secure_storage_platform_interface-1.1.2",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
+    },
+    {
+      "name": "flutter_secure_storage_web",
+      "rootUri": "file:///home/user/.pub-cache/hosted/pub.dev/flutter_secure_storage_web-1.2.1",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
+    },
+    {
+      "name": "flutter_secure_storage_windows",
+      "rootUri": "file:///home/user/.pub-cache/hosted/pub.dev/flutter_secure_storage_windows-3.1.2",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
+    },
+    {
       "name": "flutter_test",
       "rootUri": "file:///home/user/flutter/packages/flutter_test",
       "packageUri": "lib/",
@@ -324,6 +360,12 @@
       "rootUri": "file:///home/user/.pub-cache/hosted/pub.dev/google_fonts-6.3.2",
       "packageUri": "lib/",
       "languageVersion": "3.7"
+    },
+    {
+      "name": "google_generative_ai",
+      "rootUri": "file:///home/user/.pub-cache/hosted/pub.dev/google_generative_ai-0.4.7",
+      "packageUri": "lib/",
+      "languageVersion": "3.1"
     },
     {
       "name": "google_identity_services_web",
@@ -714,6 +756,12 @@
       "rootUri": "file:///home/user/.pub-cache/hosted/pub.dev/web_socket_channel-3.0.3",
       "packageUri": "lib/",
       "languageVersion": "3.3"
+    },
+    {
+      "name": "win32",
+      "rootUri": "file:///home/user/.pub-cache/hosted/pub.dev/win32-5.13.0",
+      "packageUri": "lib/",
+      "languageVersion": "3.7"
     },
     {
       "name": "xdg_directories",

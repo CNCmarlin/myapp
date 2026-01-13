@@ -5,7 +5,10 @@ import 'package:provider/provider.dart';
 import '../models/user_profile.dart';
 import '../providers/user_profile_provider.dart';
 import '../providers/workout_provider.dart';
-import '../services/nutrition_goal_service.dart'; // NEW IMPORT
+import '../services/ai_service.dart';
+import '../services/nutrition_goal_service.dart';
+import '../services/secure_storage_service.dart';
+import '../services/auth_service.dart';
 
 enum ActiveProfileView { goals, stats }
 
@@ -111,6 +114,81 @@ class _GoalsSettingsViewState extends State<_GoalsSettingsView> {
   late TextEditingController _targetFatController;
   bool _isAiLoading = false;
 
+  void _showApiKeyDialog(BuildContext context) async {
+    final storage = context.read<SecureStorageService>();
+    final currentKey = await storage.getGeminiKey() ?? '';
+    final currentProvider = await storage.getProvider();
+
+
+    final controller = TextEditingController(text: currentKey);
+    String selectedProvider = currentProvider;
+
+    if (!context.mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder( // Added to handle dropdown state in dialog
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('AI Configuration'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              DropdownButtonFormField<String>(
+                value: selectedProvider,
+                decoration: const InputDecoration(labelText: 'AI Provider'),
+                items: const [
+                  DropdownMenuItem(value: 'gemini', child: Text('Google Gemini')),
+                  DropdownMenuItem(value: 'openai', child: Text('OpenAI (Coming Soon)')),
+                ],
+                onChanged: (val) => setDialogState(() => selectedProvider = val!),
+              ),
+              const SizedBox(height: 16),
+              const Text('Your API key is encrypted and stored locally on this device.'),
+              const SizedBox(height: 8),
+              TextField(
+                controller: controller,
+                decoration: const InputDecoration(labelText: 'API Key', border: OutlineInputBorder()),
+                obscureText: true,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+            ElevatedButton(
+              onPressed: () async {
+                await storage.setGeminiKey(controller.text.trim());
+                await storage.setProvider(selectedProvider);
+                if (context.mounted) Navigator.pop(context);
+              },
+              child: const Text('Save Settings'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showLogoutConfirmation(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Logout?'),
+        content: const Text('Are you sure you want to log out? Your local data will remain on this device.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(dialogContext).pop(), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () {
+              context.read<AuthService>().signOut();
+              Navigator.of(dialogContext).pop();
+              Navigator.of(context).pop(); // Exit profile
+            },
+            child: const Text('Logout', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -148,7 +226,7 @@ class _GoalsSettingsViewState extends State<_GoalsSettingsView> {
   Future<void> _getAiSuggestions() async {
     setState(() => _isAiLoading = true);
     final provider = context.read<UserProfileProvider>();
-    final service = NutritionGoalService();
+    final service = NutritionGoalService(aiService: context.read<AIService>());
 
     if (provider.userProfile == null) return;
 
@@ -291,6 +369,30 @@ class _GoalsSettingsViewState extends State<_GoalsSettingsView> {
                 ),
               ],
             ),
+          ),
+        ),
+        Card(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                child: Text('System Settings', style: Theme.of(context).textTheme.titleLarge),
+              ),
+              ListTile(
+                leading: const Icon(Icons.vpn_key_outlined, color: Colors.blue),
+                title: const Text('Gemini API Key'),
+                subtitle: const Text('Manage your own local AI token'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => _showApiKeyDialog(context),
+              ),
+              const Divider(height: 1),
+              ListTile(
+                leading: const Icon(Icons.logout, color: Colors.red),
+                title: const Text('Logout', style: TextStyle(color: Colors.red)),
+                onTap: () => _showLogoutConfirmation(context),
+              ),
+            ],
           ),
         ),
         const SizedBox(height: 24),

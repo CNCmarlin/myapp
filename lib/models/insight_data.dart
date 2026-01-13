@@ -1,6 +1,10 @@
 // lib/models/insight_data.dart
 
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:convert';
+
+import 'package:isar/isar.dart';
+
+part 'insight_data.g.dart';
 
 // Enum to define the type of insight for UI rendering
 enum InsightType {
@@ -11,14 +15,22 @@ enum InsightType {
   unknown,
 }
 
+@collection
 class Insight {
-  final String id;
-  final String title;
-  final String summaryText;
-  final InsightType insightType;
-  final DateTime generatedAt;
-  final Map<String, dynamic> relatedData;
-  final bool isRead;
+  Id isarId = Isar.autoIncrement;
+
+  @Index(unique: true, replace: true)
+  String id;
+  String title;
+  String summaryText;
+
+  @enumerated // 🛡️ SHIELD: Isar native enum support
+  InsightType insightType;
+
+  DateTime generatedAt;
+  bool isRead;
+
+  String? relatedDataJson;
 
   Insight({
     required this.id,
@@ -26,9 +38,10 @@ class Insight {
     required this.summaryText,
     required this.insightType,
     required this.generatedAt,
-    this.relatedData = const {},
+    this.relatedDataJson,
     this.isRead = false,
   });
+
 
   factory Insight.fromMap(Map<String, dynamic> map, String docId) {
     return Insight(
@@ -36,8 +49,12 @@ class Insight {
       title: map['title'] ?? 'Insight',
       summaryText: map['summaryText'] ?? '',
       insightType: _stringToInsightType(map['insightType']),
-      generatedAt: (map['generatedAt'] as Timestamp).toDate(),
-      relatedData: Map<String, dynamic>.from(map['relatedData'] ?? {}),
+      // Fix: Handles case where date is stored as ISO String on local disk
+      generatedAt: map['generatedAt'] is DateTime 
+          ? map['generatedAt'] 
+          : DateTime.tryParse(map['generatedAt']?.toString() ?? '') ?? DateTime.now(),
+      // Fix: Map the incoming dynamic map to our localized Json string field
+      relatedDataJson: map['relatedDataJson'] ?? jsonEncode(map['relatedData'] ?? {}),
       isRead: map['isRead'] ?? false,
     );
   }

@@ -156,7 +156,7 @@ class _GoalsSettingsViewState extends State<_GoalsSettingsView> {
             TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
             ElevatedButton(
               onPressed: () async {
-                await storage.setGeminiKey(controller.text.trim());
+                await storage.saveGeminiKey(controller.text.trim());
                 await storage.setProvider(selectedProvider);
                 if (context.mounted) Navigator.pop(context);
               },

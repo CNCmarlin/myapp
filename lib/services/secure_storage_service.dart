@@ -7,8 +7,7 @@ class SecureStorageService {
   static const _geminiKey = 'GEMINI_API_KEY';
   static const _aiProvider = 'SELECTED_AI_PROVIDER';
 
-  // 🛡️ SHIELD: Securely persist user API keys
-  Future<void> setGeminiKey(String key) async {
+  Future<void> saveGeminiKey(String key) async {
     await _storage.write(key: _geminiKey, value: key);
   }
 

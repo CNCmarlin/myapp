@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../providers/onboarding_provider.dart';
 import '../../../providers/user_profile_provider.dart';
+import 'pages/api_key_page.dart';
 import 'pages/welcome_page.dart';
 import 'pages/goal_page.dart';
 import 'pages/unit_system_page.dart';
@@ -33,11 +34,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   late final List<Widget> _pages;
 
+ bool _isCurrentPageValid = true;
+
   @override
   void initState() {
     super.initState();
     _pages = [
       const WelcomePage(),
+      ApiKeyPage(onValidationChanged: (isValid) {
+    setState(() => _isCurrentPageValid = isValid);
+  }),
       GoalPage(formKey: _goalFormKey),
       const UnitSystemPage(),
       BiometricsPage(formKey: _biometricsFormKey),
@@ -65,25 +71,24 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     bool canProceed = true;
     String errorMessage = '';
 
+    // 🛡️ SHIELD: Shifted Navigation Indices
+    // Change: Updated switch cases to account for ApiKeyPage insertion at index 1.
+    // Rationale: Realigns form validation with the correct pages in the sequence.
     switch (_currentPage) {
-      case 1:
+      case 2: // GoalPage (was 1)
         canProceed = _goalFormKey.currentState?.validate() ?? false;
         break;
-      case 3:
+      case 4: // BiometricsPage (was 3)
         canProceed = _biometricsFormKey.currentState?.validate() ?? false;
         break;
-      case 4:
+      case 5: // DietAndActivityPage (was 4)
         canProceed = _dietActivityFormKey.currentState?.validate() ?? false;
         break;
-      case 6:
-        canProceed =
-            context.read<OnboardingProvider>().finalProfile.activeProgramId !=
-                null;
-        if (!canProceed) {
-          errorMessage = 'Please create and save a program to continue.';
-        }
+      case 7: // CreateProgramPage (was 6)
+        canProceed = context.read<OnboardingProvider>().finalProfile.activeProgramId != null;
+        if (!canProceed) errorMessage = 'Please create and save a program to continue.';
         break;
-      case 7:
+      case 8: // NutritionGoalsPage (was 7)
         canProceed = _nutritionFormKey.currentState?.validate() ?? false;
         break;
     }
@@ -150,20 +155,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         const Spacer(),
                         ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 32, vertical: 12),
+                            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
                           ),
-                          onPressed: () {
-                            if (_currentPage == _pages.length - 1) {
-                              _completeOnboarding(innerContext);
-                            } else {
-                              _nextPage(innerContext);
-                            }
-                          },
+                          onPressed: (_currentPage == 1 && !_isCurrentPageValid) 
+                            ? null 
+                            : () {
+                                if (_currentPage == _pages.length - 1) {
+                                  _completeOnboarding(innerContext);
+                                } else {
+                                  _nextPage(innerContext);
+                                }
+                              },
                           child: Text(
-                            _currentPage == _pages.length - 1
-                                ? 'Complete Setup'
-                                : 'Next',
+                            _currentPage == _pages.length - 1 ? 'Complete Setup' : 'Next',
                           ),
                         ),
                       ],

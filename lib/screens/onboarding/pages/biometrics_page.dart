@@ -5,7 +5,6 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../../providers/onboarding_provider.dart';
 
-
 class BiometricsPage extends StatelessWidget {
   final GlobalKey<FormState> formKey;
   const BiometricsPage({super.key, required this.formKey});
@@ -24,6 +23,8 @@ class BiometricsPage extends StatelessWidget {
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
           const SizedBox(height: 24),
+
+          // 1. Biological Sex
           DropdownButtonFormField<String>(
             value: provider.finalProfile.biologicalSex,
             decoration: const InputDecoration(
@@ -38,28 +39,46 @@ class BiometricsPage extends StatelessWidget {
             validator: (value) => value == null ? 'Please select a sex' : null,
           ),
           const SizedBox(height: 16),
-          TextFormField(
-            initialValue: provider.finalProfile.age?.toString(),
-            decoration: const InputDecoration(
-                labelText: 'Age', border: OutlineInputBorder()),
-            keyboardType: TextInputType.number,
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            onChanged: (value) {
-              final int? age = int.tryParse(value);
-              if (age != null) provider.updateAge(age);
-            },
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Please enter your age';
+
+          // 2. Birthdate
+          InkWell(
+            onTap: () async {
+              final DateTime? picked = await showDatePicker(
+                context: context,
+                // Change: Set default pop-up date to Jan 1, 1999
+                initialDate: provider.finalProfile.birthDate ?? DateTime(1999, 1, 1),
+                firstDate: DateTime(1900),
+                lastDate: DateTime.now().subtract(const Duration(days: 365 * 13)), // 13+ safety
+                helpText: 'Select your Birthdate',
+              );
+              if (picked != null) {
+                provider.updateBirthDate(picked);
               }
-              final age = int.tryParse(value);
-              if (age == null || age < 13) {
-                return 'Please enter a valid age';
-              }
-              return null;
             },
+            child: InputDecorator(
+              decoration: const InputDecoration(
+                labelText: 'Birthdate',
+                border: OutlineInputBorder(),
+                suffixIcon: Icon(Icons.calendar_today),
+              ),
+              child: Text(
+                provider.finalProfile.birthDate == null
+                    ? 'Select your birthdate'
+                    : "${provider.finalProfile.birthDate!.toLocal()}".split(' ')[0],
+              ),
+            ),
           ),
+          if (provider.finalProfile.calculatedAge != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 8.0, bottom: 8.0, left: 12.0),
+              child: Text(
+                "Calculated Age: ${provider.finalProfile.calculatedAge}",
+                style: TextStyle(color: Colors.grey[600], fontSize: 13),
+              ),
+            ),
           const SizedBox(height: 16),
+
+          // 3. Current Weight
           TextFormField(
             initialValue: provider.finalProfile.weight?['value']?.toString(),
             decoration: InputDecoration(
@@ -81,6 +100,8 @@ class BiometricsPage extends StatelessWidget {
             },
           ),
           const SizedBox(height: 16),
+
+          // 4. Height (Imperial vs Metric)
           if (isImperial)
             _ImperialHeightInput(
               onChanged: (feet, inches) {
@@ -107,6 +128,9 @@ class BiometricsPage extends StatelessWidget {
               },
             ),
           const SizedBox(height: 16),
+
+
+          // 5. Goal Weight
           TextFormField(
             initialValue:
                 provider.finalProfile.goalWeight?['value']?.toString(),

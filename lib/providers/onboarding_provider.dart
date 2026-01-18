@@ -78,8 +78,8 @@ class OnboardingProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  void updateAge(int age) {
-    _temporaryProfile = _temporaryProfile.copyWith(age: age);
+  void updateBirthDate(DateTime date) {
+    _temporaryProfile = _temporaryProfile.copyWith(birthDate: date);
     notifyListeners();
   }
 

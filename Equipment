@@ -1,0 +1,204 @@
+//Chest
+
+Equipment ID,Display Name,Type,Description
+machine_chest_press,Seated Chest Press,Selectorized,Standard circuit machine for horizontal pushing.
+machine_incline_press,Incline Chest Press,Selectorized,Fixed-path machine focusing on the upper pectorals.
+machine_decline_press,Decline Chest Press,Selectorized,Fixed-path machine focusing on the lower pectorals.
+plate_chest_press,Hammer Strength Chest Press,Plate-Loaded,"Independent arm movement, common in commercial gyms."
+plate_incline_press,Hammer Incline Press,Plate-Loaded,Independent arm movement for upper chest power.
+pec_deck_machine,Pec Deck / Butterfly,Selectorized,Squeezing motion with pads or handles for isolation.
+machine_fly,Seated Machine Fly,Selectorized,Similar to pec deck but usually with extended handles.
+cable_crossover_machine,Cable Crossover Station,Cable,Dual-pulley station for flies and presses.
+chest_dip_machine,Assisted Dip Machine,Selectorized,Platform-assisted machine focusing on lower chest/triceps.
+chest_press_isolateral,Iso-Lateral Chest Press,Plate-Loaded,Advanced machine where each side moves independently.
+machine_inner_chest_press,Inner Chest Press Machine,Niche,Specific machine designed for peak contraction at the center.
+
+//Back (Pulling & Rows)
+
+Equipment ID,Display Name,Type,Description
+machine_lat_pulldown,Lat Pulldown (Selectorized),Selectorized,The standard vertical pull circuit machine with a weight stack.
+plate_lat_pulldown,Iso-Lateral Lat Pulldown,Plate-Loaded,Hammer Strength style where arms move independently.
+machine_seated_row,Seated Row Machine,Selectorized,Fixed-path horizontal pulling machine for mid-back thickness.
+plate_seated_row,Hammer Strength Row,Plate-Loaded,Independent arm movement for heavy horizontal pulling.
+machine_t_bar_row,Chest-Supported T-Bar Row,Machine,Fixed machine with a pad to support the chest during rows.
+machine_pullover,Machine Pullover,Selectorized,"The ""Nautilus"" style machine that isolates the lats without using biceps."
+machine_assisted_pull_up,Assisted Pull-Up Station,Selectorized,Counter-weighted platform to help users perform pull-ups.
+machine_high_row,High Row Machine,Plate-Loaded,Pulling from a high-diagonal angle (common in Hammer Strength).
+machine_low_row,Low Row Machine,Selectorized,Pulling from a low-diagonal angle toward the hips.
+machine_back_extension,Seated Back Extension,Selectorized,Circuit machine for isolating the spinal erectors (lower back).
+machine_reverse_fly,Rear Delt / Pec Deck (Back),Selectorized,"The ""Reverse"" setting on a Pec Deck for upper back isolation."
+
+//Shoulders
+
+Equipment ID,Display Name,Type,Description
+machine_shoulder_press,Seated Shoulder Press,Selectorized,Standard overhead press machine with a vertical path.
+plate_shoulder_press,Hammer Strength Shoulder Press,Plate-Loaded,Independent arm movement for overhead power and stability.
+machine_lateral_raise,Seated Lateral Raise,Selectorized,Pads against the outer arms to isolate the medial delts (side).
+machine_standing_lateral,Standing Lateral Raise,Selectorized,Standing version for greater core engagement and range.
+machine_rear_delt_fly,Rear Delt / Reverse Fly,Selectorized,Seated machine specifically for the posterior deltoids.
+machine_front_raise,Front Raise Machine,Niche,Specific machine for isolating the anterior delts (front).
+machine_viking_press,Viking Press Machine,Plate-Loaded,Upward angled press common in functional/strongman areas.
+machine_shrug,Shoulder Shrug Machine,Plate-Loaded,Handles at the side to isolate the trapezius muscles.
+smith_machine_shoulder,Smith Machine Overhead Press,Fixed Rail,Barbell on rails used for stabilized overhead pressing.
+machine_upright_row,Upright Row Machine,Selectorized,Pulling handles upward toward the chin for delts and traps.
+
+// Legs
+
+Equipment ID,Display Name,Type,Description
+Pressing & Squatting,,,
+leg_press_45_machine,45-Degree Leg Press,Plate-Loaded,The standard angled sled found in almost every commercial gym.
+leg_press_horizontal,Horizontal Leg Press,Selectorized,Seated circuit machine where you push straight forward.
+leg_press_vertical,Vertical Leg Press,Plate-Loaded,Space-saving machine where you lie flat and push straight up.
+machine_hack_squat,Hack Squat Machine,Plate-Loaded,Guided squat at an angle with back support; quad dominant.
+machine_pendulum_squat,Pendulum Squat,Plate-Loaded,Arc-like motion that is very easy on the lower back/knees.
+machine_belt_squat,Belt Squat Machine,Machine,Squatting with weight hanging from a belt to deload the spine.
+machine_v_squat,V-Squat / Leverage Squat,Plate-Loaded,A machine version of the back squat with a fixed pivot.
+machine_sissy_squat,Sissy Squat Bench,Frame,Specific frame to lock shins for extreme quad isolation.
+Extensions & Curls,,,
+machine_leg_extension,Leg Extension Machine,Selectorized,The classic circuit machine for isolating the quadriceps.
+machine_seated_leg_curl,Seated Leg Curl,Selectorized,Hamstring isolation while sitting; prevents hip movement.
+machine_lying_leg_curl,Lying Leg Curl,Selectorized,Prone hamstring isolation; allows for a massive stretch.
+machine_standing_leg_curl,Standing Leg Curl,Selectorized,Single-leg hamstring isolation for fixing imbalances.
+Adduction & Abduction,,,
+machine_hip_adductor,Hip Adductor (Inner Thigh),Selectorized,Squeezing legs together; hits the inner thigh.
+machine_hip_abductor,Hip Abductor (Outer Thigh),Selectorized,Pushing legs apart; hits the glute medius and side hip.
+Glutes & Hips,,,
+machine_glute_kickback,Glute Kickback Machine,Selectorized,Pushing a plate backward to isolate the gluteus maximus.
+machine_hip_thrust,Hip Thrust Machine,Plate-Loaded,Specific machine for glute bridges without using a barbell.
+machine_reverse_hyper,Reverse Hyperextension,Machine,Swinging the legs backward to hit glutes and lower back.
+Calves,,,
+machine_seated_calf_raise,Seated Calf Raise,Plate-Loaded,Isolates the soleus (lower calf) with knees bent.
+machine_standing_calf,Standing Calf Raise,Selectorized,Isolates the gastrocnemius (upper calf) with straight legs.
+machine_rotary_calf,Rotary Calf Machine,Selectorized,Seated machine that uses a pivoting footplate for calves.
+
+// Arms
+
+Equipment ID,Display Name,Type,Description
+Bicep Isolation,,,
+machine_preacher_curl,Preacher Curl Machine,Selectorized,Padded bench for the back of the arms to lock in bicep isolation.
+machine_seated_bicep,Seated Bicep Curl,Selectorized,Common circuit machine with independent or fixed arm handles.
+plate_bicep_curl,Plate-Loaded Bicep Curl,Plate-Loaded,Hammer Strength style machine where you add your own plates.
+machine_hammer_curl,Hammer Curl Machine,Selectorized,Specialized machine with neutral grips to hit the brachialis/forearms.
+machine_arm_curl_dual,Iso-Lateral Bicep Curl,Plate/Stack,Allows each arm to curl independently to fix strength imbalances.
+Tricep Isolation,,,
+machine_tricep_extension,Seated Tricep Extension,Selectorized,Overhead or forward-pushing machine targeting the triceps.
+machine_seated_dip,Seated Dip Machine,Selectorized,Mimics a parallel bar dip but with a seat and backrest for safety.
+machine_assisted_dip,Assisted Dip Machine,Selectorized,Counter-weighted platform to help users perform vertical dips.
+machine_tricep_press,Tricep Pressdown Machine,Selectorized,Fixed-path version of a cable pushdown for strict form.
+machine_tricep_kickback,Tricep Kickback Machine,Niche,Specifically targets the long head of the tricep in a bent position.
+plate_tricep_dip,Hammer Strength Dip,Plate-Loaded,Heavy-duty plate-loaded machine for tricep power.
+
+// Core
+
+Equipment ID,Display Name,Type,Description
+Abdominal Isolation,,,
+machine_ab_crunch,Seated Ab Crunch,Selectorized,The standard vertical crunch machine with a weight stack.
+machine_total_abdominal,Total Abdominal Machine,Selectorized,Multi-joint machine that crunches the torso and lifts the knees.
+machine_ab_coaster,Ab Coaster,Glide,Bottom-up motion where knees glide on a track toward the chest.
+machine_ab_crunch_bench,Plate-Loaded Ab Bench,Plate-Loaded,"Bench with a weighted arm for heavy, resisted crunches."
+Oblique & Rotational,,,
+machine_rotary_torso,Rotary Torso Machine,Selectorized,Seated or kneeling machine for isolating core rotation (side abs).
+machine_oblique_crunch,Side Crunch Machine,Selectorized,Lateral flexion machine to target the side of the abdominal wall.
+Vertical & Gravity Stations,,,
+captain_chair,Captain’s Chair / VKR,Frame,Arm-supported frame for hanging leg and knee raises.
+machine_assisted_abs,Assisted Ab Station,Frame,Bench or chair with handles to assist with leg-raise form.
+Posterior Chain (Lower Back),,,
+machine_back_extension,Seated Back Extension,Selectorized,Isolates the lower back (erectors) by pushing a pad backward.
+roman_chair,Roman Chair / 45° Hyper,Frame,Angled bench for bodyweight or weighted back extensions.
+ghd_machine,GHD (Glute Ham Developer),Frame,Specialized bench for advanced sit-ups and back extensions.
+
+// Cables & Multi-Stations
+
+Equipment ID,Display Name,Type,Description
+Primary Stations,,,
+cable_functional_trainer,Functional Trainer,Dual Stack,Compact dual-pulley system with independent height adjustments.
+cable_crossover_machine,Cable Crossover Station,Multi-User,Wide frame with two towers for flies and bilateral work.
+cable_single_pulley,Single Adjustable Column,Single Stack,Vertical rail with one pulley that slides up and down.
+cable_jungle_gym,4-8 Station Jungle Gym,Multi-User,"Large central unit with pulldowns, rows, and crossover points."
+Specialized Cable Units,,,
+cable_lat_pulldown,Dedicated Lat Pulldown,Single Stack,Fixed overhead pulley with a seat and thigh pads.
+cable_seated_row,Dedicated Low Row,Single Stack,Fixed low pulley with footplates and a bench.
+cable_ercolina,Ercolina / Rehab Pulley,Single Stack,"Extremely smooth, lightweight pulley often used in rehab."
+
+//Sub selector for cables
+
+Equipment ID,Display Name,Type,Description
+Primary Stations,,,
+cable_functional_trainer,Functional Trainer,Dual Stack,Compact dual-pulley system with independent height adjustments.
+cable_crossover_machine,Cable Crossover Station,Multi-User,Wide frame with two towers for flies and bilateral work.
+cable_single_pulley,Single Adjustable Column,Single Stack,Vertical rail with one pulley that slides up and down.
+cable_jungle_gym,4-8 Station Jungle Gym,Multi-User,"Large central unit with pulldowns, rows, and crossover points."
+Specialized Cable Units,,,
+cable_lat_pulldown,Dedicated Lat Pulldown,Single Stack,Fixed overhead pulley with a seat and thigh pads.
+cable_seated_row,Dedicated Low Row,Single Stack,Fixed low pulley with footplates and a bench.
+cable_ercolina,Ercolina / Rehab Pulley,Single Stack,"Extremely smooth, lightweight pulley often used in rehab."
+
+// Cardio Machines
+
+Equipment ID,Display Name,Type,Description
+The Big Four,,,
+machine_treadmill,Treadmill,Motorized,"The standard for walking, running, and incline work."
+machine_stationary_bike,Stationary Bike,Magnetic,Upright or recumbent bike for low-impact cycling.
+machine_elliptical,Elliptical Trainer,Cross-Trainer,Full-body motion that is extremely easy on the joints.
+machine_stair_climber,Stairclimber / Stairmaster,Step-Mill,Revolving stairs for high-intensity lower body cardio.
+High-Intensity / Air,,,
+machine_air_bike,Assault / Air Bike,Fan-Based,"Wind-resistance bike where the harder you pedal, the harder it gets."
+machine_rowing,Rowing Machine (Erg),Air/Water,Full-body pulling cardio (Concept2 style).
+machine_skierg,SkiErg,Air,Vertical pulling machine that mimics Nordic skiing.
+machine_curved_treadmill,Manual / Curved Treadmill,Non-Motorized,Self-powered treadmill (Skillmill) for sprint training.
+Specialized & Low Impact,,,
+machine_arc_trainer,Arc Trainer,Hybrid,"Similar to elliptical but with a more natural ""arc"" motion."
+machine_recumbent_bike,Recumbent Bike,Seated,"Bike with a backrest, ideal for users with lower back issues."
+machine_spin_bike,Spin Bike,Friction,"Heavy flywheel bike for high-cadence ""Spin"" classes."
+machine_vertical_climber,Vertical Climber,VersaClimber,"Mimics a climbing motion; high calorie burn, low impact."
+machine_upper_body_erg,Arm Crank (UBE),Upper Body,"""Biking"" with your arms; used for cardio when legs are injured."
+
+// Free Weights
+
+Equipment ID,Display Name,Category,Description
+The Essentials,,,
+dumbbell,Dumbbells,Pair/Set,Individual weights; the most versatile tool for any goal.
+barbell,Barbell,Long Bar,Standard 7-foot bar (45lbs/20kg) for heavy compound lifts.
+ez_barbell,EZ Curl Bar,W-Bar,Cambered bar designed to reduce wrist strain during curls.
+kettlebell,Kettlebells,Ball/Handle,"Ideal for ballistic movements, swings, and offset loading."
+Specialized Bars,,,
+trap_bar,Trap Bar (Hex Bar),Specialty,Diamond-shaped bar for neutral-grip deadlifts and carries.
+tricep_bar,Tricep Bar,Specialty,Rectangular bar with vertical grips for hammer curls/extensions.
+safety_squat_bar,Safety Squat Bar,Specialty,Padded bar with handles to reduce shoulder strain during squats.
+swiss_bar,Swiss Bar (Multi-Grip),Specialty,Bar with multiple neutral grips for pressing and rowing.
+Loading & Resistance,,,
+weight_plates,Weight Plates / Bumpers,Plates,Used to load barbells and certain machines.
+medicine_ball,Medicine Ball,Weighted Ball,"Used for slams, throws, and core rotation work."
+slam_ball,Slam Ball,Weighted Ball,Non-bouncing ball designed specifically for floor slams.
+sandbag,Training Sandbag,Unstable Load,Shifts during movement; excellent for functional stability.
+weighted_vest,Weighted Vest,Add-on,Increases difficulty of bodyweight moves (pushups/pullups).
+
+//Sub list for free weights
+
+Support ID,Display Name,Unlocks Exercises
+flat_bench,Flat Bench,"Bench Press, Dumbbell Rows, Step-ups."
+adjustable_bench,Incline/Decline Bench,"Incline Press, Seated Shoulder Press."
+squat_rack,Squat Rack / Power Cage,"Back Squats, Rack Pulls, Pin Presses."
+bench_press_rack,Standard Bench Rack,Barbell Bench Press (fixed height).
+preacher_bench,Preacher Curl Bench,Preacher Curls (Dumbbell/EZ Bar).
+
+// Bodyweight and Calisthenics
+
+Equipment ID,Display Name,Category,Description
+Fixed Frames,,,
+pull_up_bar,Pull-up Bar,Station,"Doorway, wall-mounted, or part of a rack for pulling."
+dip_station,Dip Station,Station,Parallel bars for chest/tricep dips and leg raises.
+parallettes,Parallettes,Floor Frame,"Small portable bars for handstands, L-sits, and pushups."
+power_tower,Power Tower,Multi-Station,"Combined pull-up, dip, and leg-raise unit."
+stall_bars,Stall Bars (Wall Bars),Gymnastics,Wooden rungs on a wall for stretching and core work.
+Suspension & Rings,,,
+gymnastic_rings,Gymnastic Rings,Unstable,Wooden or plastic rings for the highest level of stability work.
+suspension_trainer,Suspension Trainer (TRX),Strap,Single-anchor straps for angled rows and presses.
+Floor & Support,,,
+push_up_handles,Push-up Handles,Grip,Rotating or fixed handles to save wrists during floor work.
+yoga_mat,Exercise / Yoga Mat,Floor,Provides grip and cushioning for all floor-based moves.
+ab_roller,Ab Roller / Wheel,Core,Simple wheel with handles for advanced core anti-extension.
+yoga_blocks,Yoga Blocks,Support,Foam blocks to assist with flexibility or hand placement.
+
+
+

@@ -24,9 +24,19 @@ class UserProfile {
   double weeklyWeightLossGoal;
   int exerciseDaysPerWeek;
   String? fitnessProficiency;
-  int? age;
+  DateTime? birthDate;
   DateTime? lastSynced;
   bool isDirty = false;
+
+  int? get calculatedAge {
+    if (birthDate == null) return null;
+    final today = DateTime.now();
+    int age = today.year - birthDate!.year;
+    if (today.month < birthDate!.month || (today.month == birthDate!.month && today.day < birthDate!.day)) {
+      age--;
+    }
+    return age;
+  }
 
   UserProfile({
     this.activityLevel,
@@ -47,7 +57,7 @@ class UserProfile {
     this.weeklyWeightLossGoal = 1.0,
     this.exerciseDaysPerWeek = 3,
     this.fitnessProficiency = 'Beginner',
-    this.age,
+    this.birthDate,
     this.goalWeight,
     this.lastSynced,
     this.isDirty = false,
@@ -86,7 +96,7 @@ class UserProfile {
       'weeklyWeightLossGoal': weeklyWeightLossGoal,
       'exerciseDaysPerWeek': exerciseDaysPerWeek,
       'fitnessProficiency': fitnessProficiency,
-      'age': age,
+      'birthDate': birthDate?.toIso8601String(),
       'goalWeight': goalWeight?.toMap(),
     };
   }
@@ -114,7 +124,7 @@ class UserProfile {
           (map['weeklyWeightLossGoal'] as num?)?.toDouble() ?? 1.0,
       exerciseDaysPerWeek: (map['exerciseDaysPerWeek'] as num?)?.toInt() ?? 3,
       fitnessProficiency: map['fitnessProficiency'] ?? 'Beginner',
-      age: map['age'] as int?,
+      birthDate: map['birthDate'] != null ? DateTime.tryParse(map['birthDate']) : null,
       goalWeight: map['goalWeight'] != null
           ? WeightData.fromMap(map['goalWeight'])
           : null,
@@ -140,7 +150,7 @@ class UserProfile {
     double? weeklyWeightLossGoal,
     int? exerciseDaysPerWeek,
     String? fitnessProficiency,
-    int? age,
+    DateTime? birthDate,
     WeightData? goalWeight,
     DateTime? lastSynced,
     bool? isDirty,
@@ -164,7 +174,7 @@ class UserProfile {
       weeklyWeightLossGoal: weeklyWeightLossGoal ?? this.weeklyWeightLossGoal,
       exerciseDaysPerWeek: exerciseDaysPerWeek ?? this.exerciseDaysPerWeek,
       fitnessProficiency: fitnessProficiency ?? this.fitnessProficiency,
-      age: age ?? this.age,
+      birthDate: birthDate ?? this.birthDate,
       goalWeight: goalWeight ?? this.goalWeight,
       lastSynced: lastSynced ?? this.lastSynced,
       isDirty: isDirty ?? this.isDirty,

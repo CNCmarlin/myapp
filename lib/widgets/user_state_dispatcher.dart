@@ -41,18 +41,28 @@ class UserStateDispatcher extends StatelessWidget {
 
     // State 2: The user profile has been successfully loaded.
 
-     if (profileProvider.userProfile != null) {
-      if (profileProvider.userProfile!.onboardingCompleted) {
-        return const AppHubScreen();
-      } else {
-        return const OnboardingScreen();
-      }
+     // 🛡️ SHIELD: Stage 4 Local-First Routing
+    // Change: Added explicit handling for null profiles as a "New User" state.
+    // Rationale: Resolves the hang on the error screen for users without an Isar record.
+
+    // State 2: Explicitly handle Error status to differentiate from a missing profile.
+    if (profileProvider.status == UserProfileStatus.error) {
+      return const Scaffold(
+        body: Center(
+          child: Text("Error loading profile. Please restart the app."),
+        ),
+      );
     }
 
-    return const Scaffold(
-      body: Center(
-        child: Text("Error loading profile. Please restart the app."),
-      ),
-    );
+    // State 3: The user profile has been successfully loaded (or checked and found empty).
+    // If the profile is null (New User) OR incomplete, route to Onboarding.
+    if (profileProvider.userProfile == null || !profileProvider.userProfile!.onboardingCompleted) {
+      if (kDebugMode) print('[DEBUG 9] UserStateDispatcher: Routing to OnboardingScreen.');
+      return const OnboardingScreen();
+    }
+
+    // State 4: Profile exists and onboarding is complete.
+    if (kDebugMode) print('[DEBUG 9] UserStateDispatcher: Routing to AppHubScreen.');
+    return const AppHubScreen();
   }
 }

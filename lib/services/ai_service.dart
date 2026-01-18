@@ -466,7 +466,7 @@ Future<String?> generateMealInsight({
       - Biological Sex: ${profile.biologicalSex}
       - Weight: ${weightKg.toStringAsFixed(2)} kg
       - Height: ${heightCm.toStringAsFixed(2)} cm
-      - Age: ${profile.age ?? 25}
+      - Age: ${profile.birthDate ?? 25}
       - Proficiency: ${profile.fitnessProficiency}
       - Activity: "${profile.activityLevel}"
       - Exercise Days/Week: ${profile.exerciseDaysPerWeek}

@@ -1,0 +1,21 @@
+[
+    { "id": "0001", "name": "Barbell Bench Press", "equipment": "barbell", "target": "pectorals", "instructions": ["Lie on bench", "Lower bar to chest", "Press up"] },
+    { "id": "0002", "name": "Barbell Squat", "equipment": "barbell", "target": "quads", "instructions": ["Rest bar on traps", "Squat down", "Drive up"] },
+    { "id": "0003", "name": "Barbell Deadlift", "equipment": "barbell", "target": "hamstrings", "instructions": ["Hinge at hips", "Grip bar", "Lift to standing"] },
+    { "id": "0004", "name": "Barbell Overhead Press", "equipment": "barbell", "target": "shoulders", "instructions": ["Stand tall", "Press bar overhead", "Lower with control"] },
+    { "id": "0005", "name": "Barbell Bent Over Row", "equipment": "barbell", "target": "back", "instructions": ["Bent over position", "Pull bar to stomach", "Lower slowly"] },
+    { "id": "0025", "name": "Dumbbell Chest Press", "equipment": "dumbbell", "target": "pectorals", "instructions": ["Lie on bench", "Press dumbbells up", "Lower to chest"] },
+    { "id": "0026", "name": "Dumbbell Shoulder Press", "equipment": "dumbbell", "target": "shoulders", "instructions": ["Seated or standing", "Press weights up", "Lower to ears"] },
+    { "id": "0027", "name": "Dumbbell Lateral Raise", "equipment": "dumbbell", "target": "shoulders", "instructions": ["Lift arms to sides", "Slight bend in elbows", "Lower slowly"] },
+    { "id": "0031", "name": "Dumbbell Row", "equipment": "dumbbell", "target": "back", "instructions": ["One knee on bench", "Pull weight to hip", "Lower back down"] },
+    { "id": "0032", "name": "Dumbbell Bicep Curl", "equipment": "dumbbell", "target": "biceps", "instructions": ["Rotate palms up", "Curl to shoulder", "Control the descent"] },
+    { "id": "0380", "name": "Leg Press", "equipment": "leg_press_machine", "target": "quads", "instructions": ["Sit in machine", "Push platform away", "Lower with control"] },
+    { "id": "0381", "name": "Leg Extension", "equipment": "leg_extension_machine", "target": "quads", "instructions": ["Sit and grip handles", "Straighten legs", "Lower slowly"] },
+    { "id": "0382", "name": "Seated Leg Curl", "equipment": "seated_leg_curl_machine", "target": "hamstrings", "instructions": ["Sit and lock in", "Curl legs down", "Return to start"] },
+    { "id": "0312", "name": "Pec Deck Fly", "equipment": "pec_deck_machine", "target": "pectorals", "instructions": ["Sit tall", "Squeeze handles together", "Control back to start"] },
+    { "id": "0150", "name": "Lat Pulldown", "equipment": "lat_pulldown_machine", "target": "back", "instructions": ["Wide grip", "Pull bar to collarbone", "Extend arms fully"] },
+    { "id": "0151", "name": "Seated Cable Row", "equipment": "cable_machine", "target": "back", "instructions": ["Sit at pulley", "Pull handle to gut", "Keep back straight"] },
+    { "id": "0630", "name": "Pushups", "equipment": "body_weight", "target": "pectorals", "instructions": ["High plank", "Lower to floor", "Push back up"] },
+    { "id": "0631", "name": "Bodyweight Squat", "equipment": "body_weight", "target": "quads", "instructions": ["Hips back", "Lower to parallel", "Stand back up"] },
+    { "id": "0632", "name": "Plank", "equipment": "body_weight", "target": "abs", "instructions": ["Forearms on floor", "Keep body straight", "Hold position"] }
+  ]

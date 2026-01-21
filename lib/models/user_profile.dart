@@ -27,6 +27,7 @@ class UserProfile {
   DateTime? birthDate;
   DateTime? lastSynced;
   bool isDirty = false;
+  List<String> equipmentIds = [];
 
   int? get calculatedAge {
     if (birthDate == null) return null;
@@ -61,6 +62,7 @@ class UserProfile {
     this.goalWeight,
     this.lastSynced,
     this.isDirty = false,
+    this.equipmentIds = const [],
   });
 
   // SHIELD: Legacy Getters to support existing code expecting Maps
@@ -98,6 +100,7 @@ class UserProfile {
       'fitnessProficiency': fitnessProficiency,
       'birthDate': birthDate?.toIso8601String(),
       'goalWeight': goalWeight?.toMap(),
+      'equipmentIds': equipmentIds,
     };
   }
 
@@ -128,6 +131,7 @@ class UserProfile {
       goalWeight: map['goalWeight'] != null
           ? WeightData.fromMap(map['goalWeight'])
           : null,
+      equipmentIds: List<String>.from(map['equipmentIds'] ?? []),
     );
   }
 
@@ -154,6 +158,7 @@ class UserProfile {
     WeightData? goalWeight,
     DateTime? lastSynced,
     bool? isDirty,
+    List<String>? equipmentIds,
   }) {
     return UserProfile(
       activityLevel: activityLevel ?? this.activityLevel,
@@ -178,6 +183,7 @@ class UserProfile {
       goalWeight: goalWeight ?? this.goalWeight,
       lastSynced: lastSynced ?? this.lastSynced,
       isDirty: isDirty ?? this.isDirty,
+      equipmentIds: equipmentIds ?? this.equipmentIds,
     );
   }
 }

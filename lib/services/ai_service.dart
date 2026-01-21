@@ -11,6 +11,22 @@ import '../services/secure_storage_service.dart';
 class AIService {
   final SecureStorageService _secureStorage;
 
+  // 🛡️ SHIELD: AI Debug Logger
+  // Change: Added deterministic logging for all analytical service calls.
+  // Rationale: Allows verification of Isar data serialization before it reaches Gemini.
+  void _log(String label, String content) {
+    if (kDebugMode) {
+      print("======== AI SERVICE DEBUG: $label ========");
+      print(content);
+      print("===========================================");
+    }
+  }
+  
+  // 🛡️ SHIELD: Centralized Model Constants
+  // Rationale: Sets 'lite' as the default workhorse for 1,000 RPD free tier.
+  static const String modelLite = 'gemini-2.5-flash-lite';
+  static const String modelStandard = 'gemini-2.5-flash';
+
   AIService({required SecureStorageService secureStorage})
       : _secureStorage = secureStorage;
 
@@ -19,7 +35,7 @@ class AIService {
     if (key == null || key.isEmpty) return null;
 
     return GenerativeModel(
-      model: 'gemini-2.5-flash',
+      model: modelLite, // 📍 Switched to Flash-Lite for dev period
       apiKey: key,
     );
   }
@@ -28,7 +44,8 @@ class AIService {
 
   Future<AIWorkoutUpdate?> processWorkoutUserInput(
     String userInput,
-    Workout currentWorkout, {
+    Workout currentWorkout,
+    UserProfile userProfile, {
     List<ChatMessage> chatHistory = const [],
   }) async {
     final model = await _getModel();
@@ -39,14 +56,25 @@ class AIService {
       );
     }
 
+    final equipmentContext = userProfile.equipmentIds.isNotEmpty 
+        ? userProfile.equipmentIds.join(', ') 
+        : 'Standard Commercial Gym Equipment (Dumbbells, Barbells, Cables, and Machines)';
+
     final prompt = """
     Update this workout based on user input: '$userInput'.
     CURRENT WORKOUT: ${jsonEncode(currentWorkout.toMap())}
+    
+    **EQUIPMENT RESTRICTIONS:**
+    You are FORBIDDEN from suggesting exercises requiring equipment not in this list: $equipmentContext.
+    
     Respond ONLY in JSON format: {"response_message": "...", "updated_workout_json": {...}}
     """;
 
+    _log("Workout Update Prompt", prompt);
+
     try {
       final response = await model.generateContent([Content.text(prompt)]);
+      _log("Update Response", response.text ?? "EMPTY");
       final data = jsonDecode(response.text!) as Map<String, dynamic>;
 
       return AIWorkoutUpdate(
@@ -101,8 +129,11 @@ class AIService {
       $previousSummary
     """;
 
+    _log("Workout Insight Prompt", prompt);
+
     try {
       final response = await model.generateContent([Content.text(prompt)]);
+      _log("Update Response", response.text ?? "EMPTY");
       return response.text?.trim() ?? "";
     } catch (e) {
       debugPrint("Deep Insights Error: $e");
@@ -146,8 +177,11 @@ class AIService {
       **Last Session Data:** $lastSessionJson
     """;
 
+    _log("Workout Summary AI Prompt", prompt);
+
     try {
       final response = await model.generateContent([Content.text(prompt)]);
+      _log("Update Response", response.text ?? "EMPTY");
       return response.text?.trim() ?? "Great job completing your workout!";
     } catch (e) {
       debugPrint("Workout Summary AI Error: $e");
@@ -202,8 +236,11 @@ class AIService {
       **Workout Data:** $workoutBlob
     """;
 
+    _log("Workout Trend AI Prompt", prompt);
+
     try {
       final response = await model.generateContent([Content.text(prompt)]);
+      _log("Update Response", response.text ?? "EMPTY");
       return response.text?.trim();
     } catch (e) {
       debugPrint("Workout Trend AI Error: $e");
@@ -213,10 +250,10 @@ class AIService {
 
   // ****************************** NUTRITION *********************************************** /
 
-  Future<Map<String, double>?> calculateMacrosFromCalories(
-    double targetCalories,
-    UserProfile profile,
-  ) async {
+  Future<Map<String, double>?> suggestMacrosDefensive({
+    required double targetCalories,
+    required UserProfile profile,
+  }) async {
     final model = await _getModel();
     if (model == null) return null;
 
@@ -225,32 +262,24 @@ class AIService {
         : (profile.weight?.value ?? 0);
 
     final prompt = """
-      ${_buildSystemInstruction('nutritionist')}
-      You are an expert nutritionist following a strict calculation protocol.
+      You are an expert nutritionist. 
+      **TARGET CALORIES:** ${targetCalories.toStringAsFixed(0)}
+      **USER WEIGHT:** ${weightKg.toStringAsFixed(1)}kg
+      **PREFERENCE:** ${profile.prefersLowCarb ? "Low-Carb" : "Standard"}
 
-      **USER DATA:**
-      - Target Calories: ${targetCalories.toStringAsFixed(0)}
-      - Weight: ${weightKg.toStringAsFixed(2)} kg
-      - Primary Goal: ${profile.primaryGoal}
-      - Dietary Preference: ${profile.prefersLowCarb ? "Low-Carb" : "Standard"}
+      **MACRO DISTRIBUTION PROTOCOL:**
+      1. IF Standard: Protein = 1.8g/kg. Fat = 25% of total calories. Carbs = Remainder.
+      2. IF Low-Carb: Protein = 2.2g/kg. Carbs = Max 50g or 10% of calories. Fat = Remainder.
 
-      **PROTOCOL:**
-      1. Calculate Protein: Protein (g) = Weight (kg) * 1.8.
-      2. Calculate Fat: Fat (g) = (Target Calories * 0.25) / 9.
-      3. Calculate Carbs: Carbs (g) = (Target Calories - (Protein*4 + Fat*9)) / 4.
-      4. Low-Carb Adjustment: If "Low-Carb", set Carbs to (Target Calories * 0.20) / 4 and recalculate Fat with the remaining calories.
-      5. Final Check: The sum of (P*4 + C*4 + F*9) MUST be within 10 calories of the Target Calories.
-
-      **IMPORTANT:** Respond with ONLY valid JSON. All values rounded to whole numbers.
-      {
-        "targetProtein": number,
-        "targetCarbs": number,
-        "targetFat": number
-      }
+      **CRITICAL:** Respond ONLY with raw JSON. No text. No markdown.
+      {"targetCalories": $targetCalories, "targetProtein": 0, "targetCarbs": 0, "targetFat": 0}
     """;
+
+    _log("Defensive Macro Prompt", prompt);
 
     try {
       final response = await model.generateContent([Content.text(prompt)]);
+      _log("Update Response", response.text ?? "EMPTY");
       final cleanJson = _cleanJson(response.text ?? '{}');
       final Map<String, dynamic> data = jsonDecode(cleanJson);
 
@@ -293,8 +322,11 @@ class AIService {
       **Meal Description to Parse:** "$inputText"
     """;
 
+    _log("Direct getMealFromText Prompt", prompt);
+
     try {
       final response = await model.generateContent([Content.text(prompt)]);
+      _log("Update Response", response.text ?? "EMPTY");
       final cleanJson = _cleanJson(response.text ?? '{}');
 
       final Map<String, dynamic> data = jsonDecode(cleanJson);
@@ -319,8 +351,11 @@ Future<String?> generateMealInsight({
       Write a single, encouraging sentence (under 20 words) positively framing how this meal impacts their goal.
     """;
 
+    _log("Meal Insight Prompt", prompt);
+
     try {
       final response = await model.generateContent([Content.text(prompt)]);
+      _log("Update Response", response.text ?? "EMPTY");
       return response.text?.trim();
     } catch (e) {
       debugPrint("Meal Insight Error: $e");
@@ -379,8 +414,11 @@ Future<String?> generateMealInsight({
       **Nutrition Data:** $nutritionBlob
     """;
 
+    _log("Nutrition Insight Prompt", prompt);
+
     try {
       final response = await model.generateContent([Content.text(prompt)]);
+      _log("Update Response", response.text ?? "EMPTY");
       return response.text?.trim();
     } catch (e) {
       debugPrint("Nutrition Insight AI Error: $e");
@@ -437,8 +475,11 @@ Future<String?> generateMealInsight({
       **Nutrition:** $nutritionBlob
     """;
 
+    _log("Summary AI Prompt", prompt);
+
     try {
       final response = await model.generateContent([Content.text(prompt)]);
+      _log("Update Response", response.text ?? "EMPTY");
       return response.text?.trim();
     } catch (e) {
       debugPrint("Summary Generation Error: $e");
@@ -482,12 +523,17 @@ Future<String?> generateMealInsight({
       4. Adjust for Goal: Lose (-500 to -1000 deficit), Gain (+350 surplus), Maintain (0).
       5. Macros: Protein = kg * 1.8. Fat = 25% of calories. Carbs = Remaining.
 
-      **OUTPUT:** Respond ONLY with JSON:
+      **CRITICAL:** You are FORBIDDEN from including any conversational text, pleasantries, or markdown other than the JSON itself. 
+      **OUTPUT:** Respond ONLY with a raw JSON object:
       {"targetCalories": 0, "targetProtein": 0, "targetCarbs": 0, "targetFat": 0}
     """;
 
+    _log("Nutrition Suggestion Prompt", prompt); // 📍 Ensure correct label for debugging
+
     try {
       final response = await model.generateContent([Content.text(prompt)]);
+      _log("Raw Suggestion Response", response.text ?? "EMPTY"); // 📍 Log the "Chatty" response
+      
       final cleanJson = _cleanJson(response.text ?? '{}');
       final Map<String, dynamic> data = jsonDecode(cleanJson);
 
@@ -502,8 +548,21 @@ Future<String?> generateMealInsight({
 // 🛡️ SHIELD: Deterministic JSON Cleanup
   // Change: Logic to strip Markdown decorators and extract raw JSON.
   // Rationale: Direct SDK calls often wrap JSON in backticks, which breaks jsonDecode.
+ // 🛡️ SHIELD: Surgical JSON Extraction
+  // Change: Refactored to find the actual JSON boundaries within potentially chatty text.
+  // Rationale: Handles cases where Gemini adds encouraging words before/after the JSON block.
   String _cleanJson(String text) {
-    return text.replaceAll('```json', '').replaceAll('```', '').trim();
+    String cleaned = text.replaceAll('```json', '').replaceAll('```', '').trim();
+    
+    // Find the first '{' and last '}' to strip any surrounding chatter
+    int firstBrace = cleaned.indexOf('{');
+    int lastBrace = cleaned.lastIndexOf('}');
+    
+    if (firstBrace != -1 && lastBrace != -1 && lastBrace > firstBrace) {
+      return cleaned.substring(firstBrace, lastBrace + 1);
+    }
+    
+    return cleaned;
   }
 
   // 🛡️ SHIELD: Centralized Role Definition
@@ -528,4 +587,6 @@ Future<String?> generateMealInsight({
     BIO: ${profile.biologicalSex}, Activity: ${profile.activityLevel}
     """;
   }
+
+  Future calculateMacrosFromCalories(double calories, UserProfile userProfile) async {}
 }

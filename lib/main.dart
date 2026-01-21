@@ -2,14 +2,11 @@
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:myapp/providers/nutrition_log_provider.dart';
-import 'firebase_options.dart';
 import 'package:provider/provider.dart';
 import '../providers/date_provider.dart';
 import '../providers/chat_provider.dart';
 import '../services/auth_service.dart';
-import '../services/firestore_service.dart';
 import '../services/local_storage_service.dart';
 import '../services/google_drive_service.dart';
 import '../services/secure_storage_service.dart';
@@ -19,16 +16,13 @@ import '../widgets/auth_wrapper.dart';
 import '../providers/insights_provider.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
 import '../providers/workout_provider.dart';
+import 'providers/onboarding_provider.dart';
 import 'services/ai_service.dart';
 import 'services/assistant_service.dart';
 import 'services/insights_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-
   final localStorageService =
       LocalStorageService(); // Change: Initialize local service
   await localStorageService
@@ -45,20 +39,14 @@ Future<void> main() async {
       providers: [
         // Foundational Services
         Provider<AuthService>(create: (_) => AuthService()),
-        Provider<FirestoreService>(create: (_) => FirestoreService()),
         Provider<LocalStorageService>(create: (_) => localStorageService),
-        // 🛡️ SHIELD: Stage 3 Sync Provider
-        // Change: Injected GoogleDriveService using the credentials from AuthService
         Provider<SecureStorageService>(create: (_) => const SecureStorageService()),
-        // 🛡️ SHIELD: Agnostic AI Engine
-        // Change: Added AIService to the foundational provider list.
-        // Rationale: Required for local-first nutrition parsing and goal calculations.
+
         Provider<AIService>(
           create: (context) => AIService(
             secureStorage: context.read<SecureStorageService>(),
           ),
         ),
-        // Change: Added AssistantService to the foundational provider list.
         Provider<AssistantService>(
           create: (context) => AssistantService(
             secureStorage: context.read<SecureStorageService>(),
@@ -69,21 +57,15 @@ Future<void> main() async {
             context.read<AuthService>().googleSignIn,
           ),
         ),
-
-        // 🛡️ SHIELD: Stage 3 Synchronization Manager
-        // Change: Added SyncService to coordinate local storage and cloud backups
         Provider<SyncService>(
           create: (context) => SyncService(
             storageService: context.read<LocalStorageService>(),
             driveService: context.read<GoogleDriveService>(),
           ),
         ),
-
-        // App State Providers
-        // ChangeNotifierProvider(create: (_) => ChatProvider()), // REMOVE THIS LINE
+        
         ChangeNotifierProvider(create: (_) => DateProvider()),
 
-        // FOUNDATIONAL: Stage 4 Insights Logic
         Provider<InsightsService>(
           create: (context) => InsightsService(
             aiService: context.read<AIService>(),
@@ -91,9 +73,6 @@ Future<void> main() async {
           ),
         ),
 
-        // 🛡️ SHIELD: Local-First Insights Provider
-        // Change: Swapped firestoreService for localStorageService and insightsService.
-        // Rationale: Resolves all 'missing_required_argument' and 'undefined_named_parameter' diagnostics.
         ChangeNotifierProvider(
           create: (context) => InsightsProvider(
             authService: context.read<AuthService>(),
@@ -112,6 +91,8 @@ Future<void> main() async {
             
           ),
         ),
+
+        ChangeNotifierProvider(create: (_) => OnboardingProvider()),
 
         // WorkoutProvider manages workout programs.
         ChangeNotifierProxyProvider<UserProfileProvider, WorkoutProvider>(

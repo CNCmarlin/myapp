@@ -43,91 +43,96 @@ const UserProfileSchema = CollectionSchema(
       name: r'calculatedAge',
       type: IsarType.long,
     ),
-    r'exerciseDaysPerWeek': PropertySchema(
+    r'equipmentIds': PropertySchema(
       id: 6,
+      name: r'equipmentIds',
+      type: IsarType.stringList,
+    ),
+    r'exerciseDaysPerWeek': PropertySchema(
+      id: 7,
       name: r'exerciseDaysPerWeek',
       type: IsarType.long,
     ),
     r'fitnessProficiency': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'fitnessProficiency',
       type: IsarType.string,
     ),
     r'goalWeight': PropertySchema(
-      id: 8,
+      id: 9,
       name: r'goalWeight',
       type: IsarType.object,
       target: r'WeightData',
     ),
     r'height': PropertySchema(
-      id: 9,
+      id: 10,
       name: r'height',
       type: IsarType.object,
       target: r'HeightData',
     ),
     r'isDirty': PropertySchema(
-      id: 10,
+      id: 11,
       name: r'isDirty',
       type: IsarType.bool,
     ),
     r'lastSynced': PropertySchema(
-      id: 11,
+      id: 12,
       name: r'lastSynced',
       type: IsarType.dateTime,
     ),
     r'measurements': PropertySchema(
-      id: 12,
+      id: 13,
       name: r'measurements',
       type: IsarType.object,
       target: r'MeasurementData',
     ),
     r'onboardingCompleted': PropertySchema(
-      id: 13,
+      id: 14,
       name: r'onboardingCompleted',
       type: IsarType.bool,
     ),
     r'prefersLowCarb': PropertySchema(
-      id: 14,
+      id: 15,
       name: r'prefersLowCarb',
       type: IsarType.bool,
     ),
     r'primaryGoal': PropertySchema(
-      id: 15,
+      id: 16,
       name: r'primaryGoal',
       type: IsarType.string,
     ),
     r'targetCalories': PropertySchema(
-      id: 16,
+      id: 17,
       name: r'targetCalories',
       type: IsarType.double,
     ),
     r'targetCarbs': PropertySchema(
-      id: 17,
+      id: 18,
       name: r'targetCarbs',
       type: IsarType.double,
     ),
     r'targetFat': PropertySchema(
-      id: 18,
+      id: 19,
       name: r'targetFat',
       type: IsarType.double,
     ),
     r'targetProtein': PropertySchema(
-      id: 19,
+      id: 20,
       name: r'targetProtein',
       type: IsarType.double,
     ),
     r'unitSystem': PropertySchema(
-      id: 20,
+      id: 21,
       name: r'unitSystem',
       type: IsarType.string,
     ),
     r'weeklyWeightLossGoal': PropertySchema(
-      id: 21,
+      id: 22,
       name: r'weeklyWeightLossGoal',
       type: IsarType.double,
     ),
     r'weight': PropertySchema(
-      id: 22,
+      id: 23,
       name: r'weight',
       type: IsarType.object,
       target: r'WeightData',
@@ -173,6 +178,13 @@ int _userProfileEstimateSize(
     final value = object.biologicalSex;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
+    }
+  }
+  bytesCount += 3 + object.equipmentIds.length * 3;
+  {
+    for (var i = 0; i < object.equipmentIds.length; i++) {
+      final value = object.equipmentIds[i];
+      bytesCount += value.length * 3;
     }
   }
   {
@@ -240,39 +252,40 @@ void _userProfileSerialize(
   writer.writeDateTime(offsets[3], object.birthDate);
   writer.writeDouble(offsets[4], object.bodyFatPercentage);
   writer.writeLong(offsets[5], object.calculatedAge);
-  writer.writeLong(offsets[6], object.exerciseDaysPerWeek);
-  writer.writeString(offsets[7], object.fitnessProficiency);
+  writer.writeStringList(offsets[6], object.equipmentIds);
+  writer.writeLong(offsets[7], object.exerciseDaysPerWeek);
+  writer.writeString(offsets[8], object.fitnessProficiency);
   writer.writeObject<WeightData>(
-    offsets[8],
+    offsets[9],
     allOffsets,
     WeightDataSchema.serialize,
     object.goalWeight,
   );
   writer.writeObject<HeightData>(
-    offsets[9],
+    offsets[10],
     allOffsets,
     HeightDataSchema.serialize,
     object.height,
   );
-  writer.writeBool(offsets[10], object.isDirty);
-  writer.writeDateTime(offsets[11], object.lastSynced);
+  writer.writeBool(offsets[11], object.isDirty);
+  writer.writeDateTime(offsets[12], object.lastSynced);
   writer.writeObject<MeasurementData>(
-    offsets[12],
+    offsets[13],
     allOffsets,
     MeasurementDataSchema.serialize,
     object.measurements,
   );
-  writer.writeBool(offsets[13], object.onboardingCompleted);
-  writer.writeBool(offsets[14], object.prefersLowCarb);
-  writer.writeString(offsets[15], object.primaryGoal);
-  writer.writeDouble(offsets[16], object.targetCalories);
-  writer.writeDouble(offsets[17], object.targetCarbs);
-  writer.writeDouble(offsets[18], object.targetFat);
-  writer.writeDouble(offsets[19], object.targetProtein);
-  writer.writeString(offsets[20], object.unitSystem);
-  writer.writeDouble(offsets[21], object.weeklyWeightLossGoal);
+  writer.writeBool(offsets[14], object.onboardingCompleted);
+  writer.writeBool(offsets[15], object.prefersLowCarb);
+  writer.writeString(offsets[16], object.primaryGoal);
+  writer.writeDouble(offsets[17], object.targetCalories);
+  writer.writeDouble(offsets[18], object.targetCarbs);
+  writer.writeDouble(offsets[19], object.targetFat);
+  writer.writeDouble(offsets[20], object.targetProtein);
+  writer.writeString(offsets[21], object.unitSystem);
+  writer.writeDouble(offsets[22], object.weeklyWeightLossGoal);
   writer.writeObject<WeightData>(
-    offsets[22],
+    offsets[23],
     allOffsets,
     WeightDataSchema.serialize,
     object.weight,
@@ -291,36 +304,37 @@ UserProfile _userProfileDeserialize(
     biologicalSex: reader.readStringOrNull(offsets[2]),
     birthDate: reader.readDateTimeOrNull(offsets[3]),
     bodyFatPercentage: reader.readDoubleOrNull(offsets[4]),
-    exerciseDaysPerWeek: reader.readLongOrNull(offsets[6]) ?? 3,
-    fitnessProficiency: reader.readStringOrNull(offsets[7]),
+    equipmentIds: reader.readStringList(offsets[6]) ?? const [],
+    exerciseDaysPerWeek: reader.readLongOrNull(offsets[7]) ?? 3,
+    fitnessProficiency: reader.readStringOrNull(offsets[8]),
     goalWeight: reader.readObjectOrNull<WeightData>(
-      offsets[8],
+      offsets[9],
       WeightDataSchema.deserialize,
       allOffsets,
     ),
     height: reader.readObjectOrNull<HeightData>(
-      offsets[9],
+      offsets[10],
       HeightDataSchema.deserialize,
       allOffsets,
     ),
-    isDirty: reader.readBoolOrNull(offsets[10]) ?? false,
-    lastSynced: reader.readDateTimeOrNull(offsets[11]),
+    isDirty: reader.readBoolOrNull(offsets[11]) ?? false,
+    lastSynced: reader.readDateTimeOrNull(offsets[12]),
     measurements: reader.readObjectOrNull<MeasurementData>(
-      offsets[12],
+      offsets[13],
       MeasurementDataSchema.deserialize,
       allOffsets,
     ),
-    onboardingCompleted: reader.readBoolOrNull(offsets[13]) ?? false,
-    prefersLowCarb: reader.readBoolOrNull(offsets[14]) ?? false,
-    primaryGoal: reader.readStringOrNull(offsets[15]),
-    targetCalories: reader.readDoubleOrNull(offsets[16]),
-    targetCarbs: reader.readDoubleOrNull(offsets[17]),
-    targetFat: reader.readDoubleOrNull(offsets[18]),
-    targetProtein: reader.readDoubleOrNull(offsets[19]),
-    unitSystem: reader.readStringOrNull(offsets[20]),
-    weeklyWeightLossGoal: reader.readDoubleOrNull(offsets[21]) ?? 1.0,
+    onboardingCompleted: reader.readBoolOrNull(offsets[14]) ?? false,
+    prefersLowCarb: reader.readBoolOrNull(offsets[15]) ?? false,
+    primaryGoal: reader.readStringOrNull(offsets[16]),
+    targetCalories: reader.readDoubleOrNull(offsets[17]),
+    targetCarbs: reader.readDoubleOrNull(offsets[18]),
+    targetFat: reader.readDoubleOrNull(offsets[19]),
+    targetProtein: reader.readDoubleOrNull(offsets[20]),
+    unitSystem: reader.readStringOrNull(offsets[21]),
+    weeklyWeightLossGoal: reader.readDoubleOrNull(offsets[22]) ?? 1.0,
     weight: reader.readObjectOrNull<WeightData>(
-      offsets[22],
+      offsets[23],
       WeightDataSchema.deserialize,
       allOffsets,
     ),
@@ -349,39 +363,39 @@ P _userProfileDeserializeProp<P>(
     case 5:
       return (reader.readLongOrNull(offset)) as P;
     case 6:
-      return (reader.readLongOrNull(offset) ?? 3) as P;
+      return (reader.readStringList(offset) ?? const []) as P;
     case 7:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readLongOrNull(offset) ?? 3) as P;
     case 8:
+      return (reader.readStringOrNull(offset)) as P;
+    case 9:
       return (reader.readObjectOrNull<WeightData>(
         offset,
         WeightDataSchema.deserialize,
         allOffsets,
       )) as P;
-    case 9:
+    case 10:
       return (reader.readObjectOrNull<HeightData>(
         offset,
         HeightDataSchema.deserialize,
         allOffsets,
       )) as P;
-    case 10:
-      return (reader.readBoolOrNull(offset) ?? false) as P;
     case 11:
-      return (reader.readDateTimeOrNull(offset)) as P;
+      return (reader.readBoolOrNull(offset) ?? false) as P;
     case 12:
+      return (reader.readDateTimeOrNull(offset)) as P;
+    case 13:
       return (reader.readObjectOrNull<MeasurementData>(
         offset,
         MeasurementDataSchema.deserialize,
         allOffsets,
       )) as P;
-    case 13:
-      return (reader.readBoolOrNull(offset) ?? false) as P;
     case 14:
       return (reader.readBoolOrNull(offset) ?? false) as P;
     case 15:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readBoolOrNull(offset) ?? false) as P;
     case 16:
-      return (reader.readDoubleOrNull(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 17:
       return (reader.readDoubleOrNull(offset)) as P;
     case 18:
@@ -389,10 +403,12 @@ P _userProfileDeserializeProp<P>(
     case 19:
       return (reader.readDoubleOrNull(offset)) as P;
     case 20:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readDoubleOrNull(offset)) as P;
     case 21:
-      return (reader.readDoubleOrNull(offset) ?? 1.0) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 22:
+      return (reader.readDoubleOrNull(offset) ?? 1.0) as P;
+    case 23:
       return (reader.readObjectOrNull<WeightData>(
         offset,
         WeightDataSchema.deserialize,
@@ -1187,6 +1203,231 @@ extension UserProfileQueryFilter
         upper: upper,
         includeUpper: includeUpper,
       ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      equipmentIdsElementEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'equipmentIds',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      equipmentIdsElementGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'equipmentIds',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      equipmentIdsElementLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'equipmentIds',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      equipmentIdsElementBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'equipmentIds',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      equipmentIdsElementStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'equipmentIds',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      equipmentIdsElementEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'equipmentIds',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      equipmentIdsElementContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'equipmentIds',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      equipmentIdsElementMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'equipmentIds',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      equipmentIdsElementIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'equipmentIds',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      equipmentIdsElementIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'equipmentIds',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      equipmentIdsLengthEqualTo(int length) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'equipmentIds',
+        length,
+        true,
+        length,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      equipmentIdsIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'equipmentIds',
+        0,
+        true,
+        0,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      equipmentIdsIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'equipmentIds',
+        0,
+        false,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      equipmentIdsLengthLessThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'equipmentIds',
+        0,
+        true,
+        length,
+        include,
+      );
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      equipmentIdsLengthGreaterThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'equipmentIds',
+        length,
+        include,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      equipmentIdsLengthBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'equipmentIds',
+        lower,
+        includeLower,
+        upper,
+        includeUpper,
+      );
     });
   }
 
@@ -2925,6 +3166,12 @@ extension UserProfileQueryWhereDistinct
     });
   }
 
+  QueryBuilder<UserProfile, UserProfile, QDistinct> distinctByEquipmentIds() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'equipmentIds');
+    });
+  }
+
   QueryBuilder<UserProfile, UserProfile, QDistinct>
       distinctByExerciseDaysPerWeek() {
     return QueryBuilder.apply(this, (query) {
@@ -3054,6 +3301,13 @@ extension UserProfileQueryProperty
   QueryBuilder<UserProfile, int?, QQueryOperations> calculatedAgeProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'calculatedAge');
+    });
+  }
+
+  QueryBuilder<UserProfile, List<String>, QQueryOperations>
+      equipmentIdsProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'equipmentIds');
     });
   }
 

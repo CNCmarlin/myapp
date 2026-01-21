@@ -1,15 +1,13 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
-import '../models/user_profile.dart'; // Adjust import if needed
+import 'package:flutter/services.dart';
+import '../models/user_profile.dart';
 
 class OnboardingProvider with ChangeNotifier {
-  // A private, temporary UserProfile object to store onboarding data.
-  // It starts with default values from the UserProfile constructor.
   UserProfile _temporaryProfile = UserProfile();
 
-  // Public getter to allow the UI to access the profile data.
   UserProfile get finalProfile => _temporaryProfile;
-
-  // --- Public methods to update the temporary profile ---
 
   void updateUnitSystem(String system) {
     _temporaryProfile = _temporaryProfile.copyWith(unitSystem: system);
@@ -38,13 +36,13 @@ class OnboardingProvider with ChangeNotifier {
 
   void updateWeight(double value, String unit) {
     _temporaryProfile = _temporaryProfile.copyWith(
-        weight: WeightData.fromAny({'value': value, 'unit': unit})); // SURGICAL: Cast Map to WeightData
+        weight: WeightData.fromAny({'value': value, 'unit': unit})); 
     notifyListeners();
   }
 
   void updateHeight(double value, String unit) {
     _temporaryProfile = _temporaryProfile.copyWith(
-        height: HeightData.fromAny({'value': value, 'unit': unit})); // SURGICAL: Cast Map to HeightData
+        height: HeightData.fromAny({'value': value, 'unit': unit}));
     notifyListeners();
   }
 
@@ -65,7 +63,6 @@ class OnboardingProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // NEW: Methods for enhanced onboarding data
 
   void updatePrefersLowCarb(bool prefersLowCarb) {
     _temporaryProfile =
@@ -90,7 +87,54 @@ class OnboardingProvider with ChangeNotifier {
 
   void updateGoalWeight(double value, String unit) {
     _temporaryProfile = _temporaryProfile.copyWith(
-        goalWeight: WeightData.fromAny({'value': value, 'unit': unit})); // SURGICAL: Cast Map to WeightData
+        goalWeight: WeightData.fromAny({'value': value, 'unit': unit}));
+    notifyListeners();
+  }
+
+
+  void toggleEquipment(String id) {
+    final currentList = List<String>.from(_temporaryProfile.equipmentIds);
+    if (currentList.contains(id)) {
+      currentList.remove(id);
+    } else {
+      currentList.add(id);
+    }
+    _temporaryProfile = _temporaryProfile.copyWith(equipmentIds: currentList);
+    notifyListeners();
+  }
+
+  void applyEquipmentPackage(List<String> ids) {
+    final currentSet = _temporaryProfile.equipmentIds.toSet();
+    currentSet.addAll(ids);
+    _temporaryProfile = _temporaryProfile.copyWith(equipmentIds: currentSet.toList());
+    notifyListeners();
+  }
+
+  void setEquipmentList(List<String> ids) {
+    _temporaryProfile = _temporaryProfile.copyWith(equipmentIds: ids);
+    notifyListeners();
+  }
+
+  Future<String> getEquipmentName(String id) async {
+    final String response = await rootBundle.loadString('assets/data/equipment_library.json');
+    final List<dynamic> library = json.decode(response);
+    final item = library.firstWhere((element) => element['id'] == id, orElse: () => null);
+    return item != null ? item['name'] : id;
+  }
+
+  Future<void> applyEssentialsForEnvironment(String env) async {
+    final String response = await rootBundle.loadString('assets/data/equipment_library.json');
+    final List<dynamic> library = json.decode(response);
+    
+    final List<String> essentials = library.where((item) {
+      final isEssential = (env == 'gym') 
+          ? (item['is_essential'] == true) 
+          : (item['is_essential_home'] == true);
+      
+      return isEssential;
+    }).map((item) => item['id'] as String).toList();
+
+    _temporaryProfile = _temporaryProfile.copyWith(equipmentIds: essentials);
     notifyListeners();
   }
 }

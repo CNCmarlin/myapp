@@ -1,5 +1,6 @@
 // lib/providers/user_profile_provider.dart
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../models/user_profile.dart';
 import '../services/ai_service.dart';
@@ -7,6 +8,7 @@ import '../services/auth_service.dart';
 import '../services/local_storage_service.dart';
 import '../services/sync_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/services.dart';
 
 enum UserProfileStatus { uninitialized, loading, loaded, error }
 
@@ -30,10 +32,10 @@ class UserProfileProvider with ChangeNotifier {
   bool get isLoading => _status == UserProfileStatus.loading;
   bool get isSaving => _isSaving;
 
- UserProfileProvider({
+  UserProfileProvider({
     required AuthService authService,
     required LocalStorageService localStorageService,
-    required SyncService syncService, 
+    required SyncService syncService,
     required AIService aiService,
   })  : _authService = authService,
         _localStorageService = localStorageService,
@@ -53,8 +55,8 @@ class UserProfileProvider with ChangeNotifier {
 
   void setInitialProfile(UserProfile profile) {
     if (_status != UserProfileStatus.loading) {
-      _userProfile = profile; 
-       _savedProfile = profile.copyWith();
+      _userProfile = profile;
+      _savedProfile = profile.copyWith();
       notifyListeners();
     }
   }
@@ -65,7 +67,7 @@ class UserProfileProvider with ChangeNotifier {
     notifyListeners();
     try {
       _userProfile = await _localStorageService.getUserProfile();
-      _savedProfile = _userProfile?.copyWith(); 
+      _savedProfile = _userProfile?.copyWith();
       hasUnsavedChanges = false;
       _status = UserProfileStatus.loaded;
     } catch (e) {
@@ -78,16 +80,16 @@ class UserProfileProvider with ChangeNotifier {
   Future<void> refreshData() async {
     final userId = _authService.currentUser?.uid;
     if (userId != null) {
-      await _loadInitialData(); 
+      await _loadInitialData();
     }
   }
 
- Future<void> updateActiveProgram(String? newProgramId) async {
+  Future<void> updateActiveProgram(String? newProgramId) async {
     if (_userProfile == null) return;
 
     _userProfile = _userProfile!.copyWith(activeProgramId: newProgramId);
-    notifyListeners(); 
-    
+    notifyListeners();
+
     await _localStorageService.saveUserProfile(_userProfile!);
   }
 
@@ -133,7 +135,7 @@ class UserProfileProvider with ChangeNotifier {
     _userProfile = _userProfile!.copyWith(
       unitSystem: unitSystem,
       biologicalSex: biologicalSex,
-      weight: WeightData.fromAny(weight), 
+      weight: WeightData.fromAny(weight),
       height: HeightData.fromAny(height),
       bodyFatPercentage: bodyFatPercentage,
       measurements: MeasurementData.fromAny(measurements),
@@ -141,6 +143,48 @@ class UserProfileProvider with ChangeNotifier {
     );
     hasUnsavedChanges = true;
     notifyListeners();
+  }
+
+  void toggleEquipment(String id) {
+    if (_userProfile == null) return;
+    final currentList = List<String>.from(_userProfile!.equipmentIds);
+    if (currentList.contains(id)) {
+      currentList.remove(id);
+    } else {
+      currentList.add(id);
+    }
+    _userProfile = _userProfile!.copyWith(equipmentIds: currentList);
+    hasUnsavedChanges = true;
+    notifyListeners();
+  }
+
+  void setEquipmentList(List<String> ids) {
+    if (_userProfile == null) return;
+    _userProfile = _userProfile!.copyWith(equipmentIds: ids);
+    hasUnsavedChanges = true;
+    notifyListeners();
+  }
+
+  Future<void> applyEssentialsForEnvironment(String env) async {
+    if (_userProfile == null) return;
+
+    try {
+      final String response = await rootBundle.loadString('assets/data/equipment_library.json');
+      final List<dynamic> library = json.decode(response);
+
+      final List<String> essentials = library.where((item) {
+        final bool checkFlag = (env == 'gym')
+            ? (item['is_essential'] == true)
+            : (item['is_essential_home'] == true);
+        return checkFlag;
+      }).map((item) => item['id'] as String).toList();
+
+      _userProfile = _userProfile!.copyWith(equipmentIds: essentials);
+      hasUnsavedChanges = true;
+      notifyListeners();
+    } catch (e) {
+      debugPrint("Error loading equipment library: $e");
+    }
   }
 
   Future<bool> saveProfileChanges() async {
@@ -151,7 +195,7 @@ class UserProfileProvider with ChangeNotifier {
 
     try {
       await _localStorageService.saveUserProfile(_userProfile!);
-      _savedProfile = _userProfile?.copyWith(); 
+      _savedProfile = _userProfile?.copyWith();
       hasUnsavedChanges = false;
       return true;
     } catch (e) {

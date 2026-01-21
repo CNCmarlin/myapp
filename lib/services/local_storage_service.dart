@@ -62,6 +62,40 @@ class LocalStorageService {
     }
   }
 
+  Future<Workout?> getInProgressWorkout(DateTime date) async {
+    return await getWorkoutByDate(date);
+  }
+
+  Future<void> saveInProgressWorkout(Workout workout) async {
+    await saveWorkout(workout);
+  }
+
+  Future<void> saveWorkoutLog(Workout workout) async {
+    await saveWorkout(workout);
+  }
+
+  Future<void> deleteInProgressWorkout(DateTime date) async {
+    final workout = await getWorkoutByDate(date);
+    if (workout != null) {
+      await isar.writeTxn(() async {
+        await isar.workouts.delete(workout.isarId); 
+      });
+    }
+  }
+
+  Future<Exercise?> getPreviousExerciseLog(String exerciseName) async {
+    final workouts = await isar.workouts.where().sortByDateDesc().findAll();
+    for (var workout in workouts) {
+      final match = workout.exercises.firstWhere(
+        (e) => (e.name ?? '') == exerciseName && (e.sets?.isNotEmpty ?? false),
+        orElse: () => Exercise(name: '', sets: []),
+      );
+      
+      if (match.name?.isNotEmpty ?? false) return match;
+    }
+    return null;
+  }
+
   Future<Workout?> getWorkoutByDate(DateTime date) async {
     final startOfDay = DateTime(date.year, date.month, date.day);
     final endOfDay = startOfDay.add(const Duration(days: 1));

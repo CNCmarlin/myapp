@@ -21,6 +21,14 @@ class AssistantService {
   AssistantService({required SecureStorageService secureStorage})
       : _secureStorage = secureStorage;
 
+  void _log(String label, String content) {
+    if (kDebugMode) {
+      print("******** ASSISTANT DEBUG: $label ********");
+      print(content);
+      print("*****************************************");
+    }
+  }
+
   Future<WorkoutProgram?> generateAiWorkoutProgram({
     required String prompt,
     required String equipmentInfo,
@@ -29,7 +37,7 @@ class AssistantService {
     final key = await _secureStorage.getGeminiKey();
     if (key == null || key.isEmpty) return null;
 
-    final model = GenerativeModel(model: 'gemini-2.5-flash', apiKey: key);
+    final model = GenerativeModel(model: 'gemini-2.5-flash-lite', apiKey: key);
 
     final finalPrompt = """
       You are an expert fitness coach creating a personalized workout program.
@@ -40,10 +48,15 @@ class AssistantService {
       - Exercise Days Per Week: ${userProfile.exerciseDaysPerWeek}
 
       **USER'S REQUEST:** "$prompt"
-      **EQUIPMENT AVAILABILITY:** "$equipmentInfo"
+      **GROUND TRUTH EQUIPMENT:** ${userProfile.equipmentIds.join(', ')}
+
+      **STRICT CONSTRAINTS:**
+      1. ONLY use the equipment listed above. 
+      2. If a requested exercise requires equipment NOT in the list, you MUST swap it for a functional equivalent using the available equipment.
+      3. If the list above is "Bodyweight Only", do not suggest any weighted movements.
 
       **TASK:**
-      1. Tailor exercise selection and volume to the user's **Fitness Level**.
+      1. Tailor exercise selection and volume to the user's **Fitness Level**:
          - **Beginner:** Compound movements, simple progressions.
          - **Intermediate:** More variety and isolation work.
          - **Advanced:** High work capacity; can include supersets.
@@ -62,8 +75,12 @@ class AssistantService {
       }
     """;
 
+    _log("Program Generation Prompt", finalPrompt);
+
     try {
       final response = await model.generateContent([Content.text(finalPrompt)]);
+      _log("Raw AI Response", response.text ?? "EMPTY");
+      
       final cleanJson = _cleanJson(response.text ?? '{}');
 
       // Surgical Intervention: Isar model mapping
@@ -160,7 +177,7 @@ class AssistantService {
     ];
 
     final model = GenerativeModel(
-      model: 'gemini-2.5-flash', 
+      model: 'gemini-2.5-flash-lite', 
       apiKey: key,
       tools: tools,
     );
@@ -178,9 +195,12 @@ class AssistantService {
       if (functionCall != null) {
         switch (functionCall.name) {
           case 'generate_workout_program':
+
             final generatedProgram = await generateAiWorkoutProgram(
               prompt: functionCall.args['prompt'] as String? ?? prompt,
-              equipmentInfo: functionCall.args['equipmentInfo'] as String? ?? 'Standard Gym',
+              equipmentInfo: userProfile.equipmentIds.isNotEmpty 
+                  ? userProfile.equipmentIds.join(', ') 
+                  : 'Bodyweight Only',
               userProfile: userProfile,
             );
             return AssistantResponse(type: AssistantResponseType.program, programResponse: generatedProgram);

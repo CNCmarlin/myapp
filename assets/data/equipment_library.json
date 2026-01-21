@@ -1,36 +1,2069 @@
 [
-    { "id": "body_weight", "name": "Bodyweight", "category": "Basic", "isHome": true, "isGym": true, "isEssential": true },
-    { "id": "dumbbell", "name": "Dumbbells", "category": "Free Weights", "isHome": true, "isGym": true, "isEssential": true },
-    { "id": "barbell", "name": "Barbell", "category": "Free Weights", "isHome": true, "isGym": true, "isEssential": true },
-    { "id": "ez_barbell", "name": "EZ Bar", "category": "Free Weights", "isHome": false, "isGym": true, "isEssential": false },
-    { "id": "kettlebell", "name": "Kettlebell", "category": "Free Weights", "isHome": true, "isGym": true, "isEssential": false },
-    { "id": "flat_bench", "name": "Flat Bench", "category": "Accessories", "isHome": true, "isGym": true, "isEssential": true },
-    { "id": "adjustable_bench", "name": "Adjustable Bench", "category": "Accessories", "isHome": true, "isGym": true, "isEssential": false },
-    { "id": "pull_up_bar", "name": "Pull-up Bar", "category": "Bodyweight", "isHome": true, "isGym": true, "isEssential": false },
-    { "id": "dip_station", "name": "Dip Station", "category": "Bodyweight", "isHome": true, "isGym": true, "isEssential": false },
-    { "id": "resistance_band", "name": "Resistance Bands", "category": "Bands", "isHome": true, "isGym": true, "isEssential": false },
-    { "id": "cable_machine", "name": "Cable Machine", "category": "Machines", "isHome": false, "isGym": true, "isEssential": true },
-    { "id": "smith_machine", "name": "Smith Machine", "category": "Machines", "isHome": false, "isGym": true, "isEssential": false },
-    { "id": "leg_press_machine", "name": "Leg Press", "category": "Isolation", "isHome": false, "isGym": true, "isEssential": false },
-    { "id": "leg_extension_machine", "name": "Leg Extension", "category": "Isolation", "isHome": false, "isGym": true, "isEssential": false },
-    { "id": "seated_leg_curl_machine", "name": "Seated Leg Curl", "category": "Isolation", "isHome": false, "isGym": true, "isEssential": false },
-    { "id": "lying_leg_curl_machine", "name": "Lying Leg Curl", "category": "Isolation", "isHome": false, "isGym": true, "isEssential": false },
-    { "id": "chest_press_machine", "name": "Chest Press (Machine)", "category": "Isolation", "isHome": false, "isGym": true, "isEssential": false },
-    { "id": "pec_deck_machine", "name": "Pec Deck / Butterfly", "category": "Isolation", "isHome": false, "isGym": true, "isEssential": false },
-    { "id": "shoulder_press_machine", "name": "Shoulder Press (Machine)", "category": "Isolation", "isHome": false, "isGym": true, "isEssential": false },
-    { "id": "lat_pulldown_machine", "name": "Lat Pulldown", "category": "Isolation", "isHome": false, "isGym": true, "isEssential": false },
-    { "id": "seated_row_machine", "name": "Seated Row (Machine)", "category": "Isolation", "isHome": false, "isGym": true, "isEssential": false },
-    { "id": "bicep_curl_machine", "name": "Bicep Curl (Machine)", "category": "Isolation", "isHome": false, "isGym": true, "isEssential": false },
-    { "id": "tricep_extension_machine", "name": "Tricep Extension (Machine)", "category": "Isolation", "isHome": false, "isGym": true, "isEssential": false },
-    { "id": "calf_raise_machine", "name": "Calf Raise Machine", "category": "Isolation", "isHome": false, "isGym": true, "isEssential": false },
-    { "id": "ab_coaster_machine", "name": "Ab Crunch Machine", "category": "Isolation", "isHome": false, "isGym": true, "isEssential": false },
-    { "id": "medicine_ball", "name": "Medicine Ball", "category": "General", "isHome": true, "isGym": true, "isEssential": false },
-    { "id": "bosu_ball", "name": "Bosu Ball", "category": "General", "isHome": true, "isGym": true, "isEssential": false },
-    { "id": "stability_ball", "name": "Stability Ball", "category": "General", "isHome": true, "isGym": true, "isEssential": false },
-    { "id": "foam_roller", "name": "Foam Roller", "category": "Recovery", "isHome": true, "isGym": true, "isEssential": false },
-    { "id": "treadmill", "name": "Treadmill", "category": "Cardio", "isHome": false, "isGym": true, "isEssential": false },
-    { "id": "stationary_bike", "name": "Stationary Bike", "category": "Cardio", "isHome": true, "isGym": true, "isEssential": false },
-    { "id": "rowing_machine", "name": "Rowing Machine", "category": "Cardio", "isHome": false, "isGym": true, "isEssential": false },
-    { "id": "elliptical", "name": "Elliptical", "category": "Cardio", "isHome": false, "isGym": true, "isEssential": false },
-    { "id": "stair_climber", "name": "Stairclimber", "category": "Cardio", "isHome": false, "isGym": true, "isEssential": false }
-  ]
+    {
+      "id": "machine_chest_press",
+      "name": "Seated Chest Press",
+      "type": "Selectorized",
+      "category": "chest_machines",
+      "description": "Guided horizontal press targeting mid-chest and triceps; provides high stability for heavy compound loading.",
+      "environment": ["gym"],
+      "dependencies": [],
+      "is_essential": true,
+      "is_essential_home": false,
+      "goal_tags": [],
+      "image_path": null
+    },
+    {
+      "id": "machine_incline_press",
+      "name": "Incline Chest Press",
+      "type": "Selectorized",
+      "category": "chest_machines",
+      "description": "Upward-angled guided press focusing on the upper pectoral fibers and anterior deltoids.",
+      "environment": ["gym"],
+      "dependencies": [],
+      "is_essential": true,
+      "is_essential_home": false,
+      "goal_tags": [],
+      "image_path": null
+    },
+    {
+      "id": "machine_decline_press",
+      "name": "Decline Chest Press",
+      "type": "Selectorized",
+      "category": "chest_machines",
+      "description": "Downward-angled guided press focusing on lower pectoral development while reducing shoulder involvement.",
+      "environment": ["gym"],
+      "dependencies": [],
+      "is_essential": false,
+      "is_essential_home": false,
+      "goal_tags": ["maintain weight"],
+      "image_path": null
+    },
+    {
+      "id": "plate_chest_press",
+      "name": "Hammer Strength Chest Press",
+      "type": "Plate-Loaded",
+      "category": "chest_machines",
+      "description": "Plate-loaded press with a converging path; independent arms prevent strength imbalances and mimic natural biomechanics.",
+      "environment": ["gym"],
+      "dependencies": ["weight_plates"],
+      "is_essential": true,
+      "is_essential_home": false,
+      "goal_tags": [],
+      "image_path": null
+    },
+    {
+      "id": "plate_incline_press",
+      "name": "Hammer Incline Press",
+      "type": "Plate-Loaded",
+      "category": "chest_machines",
+      "description": "Heavy-duty plate-loaded machine designed for power development in the upper chest with independent arm movement.",
+      "environment": ["gym"],
+      "dependencies": ["weight_plates"],
+      "is_essential": false,
+      "is_essential_home": false,
+      "goal_tags": ["gain muscle"],
+      "image_path": null
+    },
+    {
+      "id": "pec_deck_machine",
+      "name": "Pec Deck (Butterfly)",
+      "type": "Selectorized",
+      "category": "chest_machines",
+      "description": "Padded-arm isolation machine; focuses on chest contraction by removing bicep and tricep assistance.",
+      "environment": ["gym"],
+      "dependencies": [],
+      "is_essential": true,
+      "is_essential_home": false,
+      "goal_tags": [],
+      "image_path": null
+    },
+    {
+      "id": "machine_fly",
+      "name": "Seated Machine Fly",
+      "type": "Selectorized",
+      "category": "chest_machines",
+      "description": "Handle-based isolation machine providing a deep chest stretch and a controlled rotational arc of motion.",
+      "environment": ["gym"],
+      "dependencies": [],
+      "is_essential": false,
+      "is_essential_home": false,
+      "goal_tags": ["maintain weight"],
+      "image_path": null
+    },
+    {
+      "id": "cable_crossover_machine",
+      "name": "Cable Crossover Station",
+      "type": "Cable",
+      "category": "cables",
+      "description": "Versatile dual-pulley station offering constant tension for various fly and press variations across multiple planes.",
+      "environment": ["gym"],
+      "dependencies": [],
+      "is_essential": true,
+      "is_essential_home": false,
+      "goal_tags": [],
+      "image_path": null
+    },
+    {
+      "id": "chest_dip_machine",
+      "name": "Assisted Dip Machine",
+      "type": "Selectorized",
+      "category": "chest_machines",
+      "description": "Weight-assisted station for vertical dips; targets the lower chest and triceps while supporting body weight.",
+      "environment": ["gym"],
+      "dependencies": [],
+      "is_essential": false,
+      "is_essential_home": false,
+      "goal_tags": ["lose weight"],
+      "image_path": null
+    },
+    {
+        "id": "chest_press_isolateral",
+        "name": "Iso-Lateral Chest Press",
+        "type": "Plate-Loaded",
+        "category": "chest_machines",
+        "description": "Advanced plate-loaded press where each side moves independently to ensure balanced strength and muscle growth.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [
+            "weight_plates"
+        ],
+        "is_essential": false,
+        "is_essential_home": false,
+        "goal_tags": [
+            "gain muscle"
+        ],
+        "image_path": null
+    },
+    {
+        "id": "machine_inner_chest_press",
+        "name": "Inner Chest Press Machine",
+        "type": "Niche",
+        "category": "chest_machines",
+        "description": "Narrow-grip specialized press designed to maximize muscle tension and peak contraction at the center of the chest.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [],
+        "is_essential": false,
+        "is_essential_home": false,
+        "goal_tags": [
+            "gain muscle"
+        ],
+        "image_path": null
+    },
+    {
+        "id": "machine_lat_pulldown",
+        "name": "Lat Pulldown (Selectorized)",
+        "type": "Selectorized",
+        "category": "back_machines",
+        "description": "Standard weight-stack machine for vertical pulling; targets latissimus dorsi width and upper back musculature.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [],
+        "is_essential": true,
+        "is_essential_home": false,
+        "goal_tags": [
+        ],
+        "image_path": null
+    },
+    {
+        "id": "plate_lat_pulldown",
+        "name": "Iso-Lateral Lat Pulldown",
+        "type": "Plate-Loaded",
+        "category": "back_machines",
+        "description": "Plate-loaded vertical pull with independent arm movement; allows for unilateral lat engagement and natural converging biomechanics.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [
+            "weight_plates"
+        ],
+        "is_essential": false,
+        "is_essential_home": false,
+        "goal_tags": [
+            "gain muscle"
+        ],
+        "image_path": null
+    },
+    {
+        "id": "machine_seated_row",
+        "name": "Seated Row Machine",
+        "type": "Selectorized",
+        "category": "back_machines",
+        "description": "Guided horizontal pulling machine focusing on mid-back thickness, rhomboids, and traps with maximum spinal stability.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [],
+        "is_essential": true,
+        "is_essential_home": false,
+        "goal_tags": [
+        ],
+        "image_path": null
+    },
+    {
+        "id": "plate_seated_row",
+        "name": "Hammer Strength Row",
+        "type": "Plate-Loaded",
+        "category": "back_machines",
+        "description": "Heavy-duty horizontal row requiring manual plates; independent handles help correct strength imbalances and allow for heavy loading.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [
+            "weight_plates"
+        ],
+        "is_essential": false,
+        "is_essential_home": false,
+        "goal_tags": [
+            "gain muscle"
+        ],
+        "image_path": null
+    },
+    {
+        "id": "machine_t_bar_row",
+        "name": "Chest-Supported T-Bar Row",
+        "type": "Machine",
+        "category": "back_machines",
+        "description": "Lever-based row featuring a pad to support the torso; eliminates momentum and protects the lower back during heavy rowing.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [
+            "weight_plates"
+        ],
+        "is_essential": false,
+        "is_essential_home": false,
+        "goal_tags": [
+            "gain muscle"
+        ],
+        "image_path": null
+    },
+    {
+        "id": "machine_pullover",
+        "name": "Machine Pullover",
+        "type": "Selectorized",
+        "category": "back_machines",
+        "description": "Isolation machine targeting the lats through a full rotational arc; eliminates bicep involvement for pure lat development.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [],
+        "is_essential": false,
+        "is_essential_home": false,
+        "goal_tags": [
+            "gain muscle"
+        ],
+        "image_path": null
+    },
+    {
+        "id": "machine_assisted_pull_up",
+        "name": "Assisted Pull-Up Station",
+        "type": "Selectorized",
+        "category": "back_machines",
+        "description": "Counter-weighted platform providing upward assistance; enables users to perform vertical pulling movements with adjustable support.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [],
+        "is_essential": true,
+        "is_essential_home": false,
+        "goal_tags": [
+        ],
+        "image_path": null
+    },
+    {
+        "id": "machine_high_row",
+        "name": "High Row Machine",
+        "type": "Plate-Loaded",
+        "category": "back_machines",
+        "description": "High-to-low diagonal pulling path; specifically targets the upper lats and middle trapezius fibers.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [
+            "weight_plates"
+        ],
+        "is_essential": false,
+        "is_essential_home": false,
+        "goal_tags": [
+            "gain muscle"
+        ],
+        "image_path": null
+    },
+    {
+        "id": "machine_low_row",
+        "name": "Low Row Machine",
+        "type": "Selectorized",
+        "category": "back_machines",
+        "description": "Low-to-high diagonal pulling trajectory; emphasizes the lower lat fibers and mid-back thickness.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [],
+        "is_essential": false,
+        "is_essential_home": false,
+        "goal_tags": [
+            "gain muscle"
+        ],
+        "image_path": null
+    },
+    {
+        "id": "machine_chest_press",
+        "name": "Seated Chest Press",
+        "type": "Selectorized",
+        "category": "chest_machines",
+        "description": "Guided horizontal press targeting mid-chest and triceps; provides high stability for heavy compound loading.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [],
+        "is_essential": true,
+        "is_essential_home": false,
+        "goal_tags": [],
+        "image_path": null
+    },
+    {
+        "id": "machine_incline_press",
+        "name": "Incline Chest Press",
+        "type": "Selectorized",
+        "category": "chest_machines",
+        "description": "Upward-angled guided press focusing on the upper pectoral fibers and anterior deltoids.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [],
+        "is_essential": true,
+        "is_essential_home": false,
+        "goal_tags": [],
+        "image_path": null
+    },
+    {
+        "id": "machine_decline_press",
+        "name": "Decline Chest Press",
+        "type": "Selectorized",
+        "category": "chest_machines",
+        "description": "Downward-angled guided press focusing on lower pectoral development while reducing shoulder involvement.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [],
+        "is_essential": false,
+        "is_essential_home": false,
+        "goal_tags": [
+            "maintain weight"
+        ],
+        "image_path": null
+    },
+    {
+        "id": "plate_chest_press",
+        "name": "Hammer Strength Chest Press",
+        "type": "Plate-Loaded",
+        "category": "chest_machines",
+        "description": "Plate-loaded press with a converging path; independent arms prevent strength imbalances and mimic natural biomechanics.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [
+            "weight_plates"
+        ],
+        "is_essential": false,
+        "is_essential_home": false,
+        "goal_tags": [
+            "gain muscle"
+        ],
+        "image_path": null
+    },
+    {
+        "id": "plate_incline_press",
+        "name": "Hammer Incline Press",
+        "type": "Plate-Loaded",
+        "category": "chest_machines",
+        "description": "Heavy-duty plate-loaded machine designed for power development in the upper chest with independent arm movement.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [
+            "weight_plates"
+        ],
+        "is_essential": false,
+        "is_essential_home": false,
+        "goal_tags": [
+            "gain muscle"
+        ],
+        "image_path": null
+    },
+    {
+        "id": "pec_deck_machine",
+        "name": "Pec Deck (Butterfly)",
+        "type": "Selectorized",
+        "category": "chest_machines",
+        "description": "Padded-arm isolation machine; focuses on chest contraction by removing bicep and tricep assistance.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [],
+        "is_essential": true,
+        "is_essential_home": false,
+        "goal_tags": [],
+        "image_path": null
+    },
+    {
+        "id": "machine_fly",
+        "name": "Seated Machine Fly",
+        "type": "Selectorized",
+        "category": "chest_machines",
+        "description": "Handle-based isolation machine providing a deep chest stretch and a controlled rotational arc of motion.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [],
+        "is_essential": false,
+        "is_essential_home": false,
+        "goal_tags": [
+            "maintain weight"
+        ],
+        "image_path": null
+    },
+    {
+        "id": "cable_crossover_machine",
+        "name": "Cable Crossover Station",
+        "type": "Cable",
+        "category": "cables",
+        "description": "Versatile dual-pulley station offering constant tension for various fly and press variations across multiple planes.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [],
+        "is_essential": true,
+        "is_essential_home": false,
+        "goal_tags": [],
+        "image_path": null
+    },
+    {
+        "id": "chest_dip_machine",
+        "name": "Assisted Dip Machine",
+        "type": "Selectorized",
+        "category": "chest_machines",
+        "description": "Weight-assisted station for vertical dips; targets the lower chest and triceps while supporting body weight.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [],
+        "is_essential": false,
+        "is_essential_home": false,
+        "goal_tags": [
+            "lose weight"
+        ],
+        "image_path": null
+    },
+    {
+        "id": "chest_press_isolateral",
+        "name": "Iso-Lateral Chest Press",
+        "type": "Plate-Loaded",
+        "category": "chest_machines",
+        "description": "Advanced plate-loaded press where each side moves independently to ensure balanced strength and muscle growth.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [
+            "weight_plates"
+        ],
+        "is_essential": false,
+        "is_essential_home": false,
+        "goal_tags": [
+            "gain muscle"
+        ],
+        "image_path": null
+    },
+    {
+        "id": "machine_inner_chest_press",
+        "name": "Inner Chest Press Machine",
+        "type": "Niche",
+        "category": "chest_machines",
+        "description": "Narrow-grip specialized press designed to maximize muscle tension and peak contraction at the center of the chest.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [],
+        "is_essential": false,
+        "is_essential_home": false,
+        "goal_tags": [
+            "gain muscle"
+        ],
+        "image_path": null
+    },
+    {
+        "id": "machine_lat_pulldown",
+        "name": "Lat Pulldown (Selectorized)",
+        "type": "Selectorized",
+        "category": "back_machines",
+        "description": "Standard weight-stack machine for vertical pulling; targets latissimus dorsi width and upper back musculature.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [],
+        "is_essential": true,
+        "is_essential_home": false,
+        "goal_tags": [],
+        "image_path": null
+    },
+    {
+        "id": "plate_lat_pulldown",
+        "name": "Iso-Lateral Lat Pulldown",
+        "type": "Plate-Loaded",
+        "category": "back_machines",
+        "description": "Plate-loaded vertical pull with independent arm movement; allows for unilateral lat engagement and natural converging biomechanics.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [
+            "weight_plates"
+        ],
+        "is_essential": false,
+        "is_essential_home": false,
+        "goal_tags": [
+            "gain muscle"
+        ],
+        "image_path": null
+    },
+    {
+        "id": "machine_seated_row",
+        "name": "Seated Row Machine",
+        "type": "Selectorized",
+        "category": "back_machines",
+        "description": "Guided horizontal pulling machine focusing on mid-back thickness, rhomboids, and traps with maximum spinal stability.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [],
+        "is_essential": true,
+        "is_essential_home": false,
+        "goal_tags": [],
+        "image_path": null
+    },
+    {
+        "id": "plate_seated_row",
+        "name": "Hammer Strength Row",
+        "type": "Plate-Loaded",
+        "category": "back_machines",
+        "description": "Heavy-duty horizontal row requiring manual plates; independent handles help correct strength imbalances and allow for heavy loading.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [
+            "weight_plates"
+        ],
+        "is_essential": false,
+        "is_essential_home": false,
+        "goal_tags": [
+            "gain muscle"
+        ],
+        "image_path": null
+    },
+    {
+        "id": "machine_t_bar_row",
+        "name": "Chest-Supported T-Bar Row",
+        "type": "Machine",
+        "category": "back_machines",
+        "description": "Lever-based row featuring a pad to support the torso; eliminates momentum and protects the lower back during heavy rowing.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [
+            "weight_plates"
+        ],
+        "is_essential": false,
+        "is_essential_home": false,
+        "goal_tags": [
+            "gain muscle"
+        ],
+        "image_path": null
+    },
+    {
+        "id": "machine_pullover",
+        "name": "Machine Pullover",
+        "type": "Selectorized",
+        "category": "back_machines",
+        "description": "Isolation machine targeting the lats through a full rotational arc; eliminates bicep involvement for pure lat development.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [],
+        "is_essential": false,
+        "is_essential_home": false,
+        "goal_tags": [
+            "gain muscle"
+        ],
+        "image_path": null
+    },
+    {
+        "id": "machine_assisted_pull_up",
+        "name": "Assisted Pull-Up Station",
+        "type": "Selectorized",
+        "category": "back_machines",
+        "description": "Counter-weighted platform providing upward assistance; enables users to perform vertical pulling movements with adjustable support.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [],
+        "is_essential": false,
+        "is_essential_home": false,
+        "goal_tags": [
+            "lose weight"
+        ],
+        "image_path": null
+    },
+    {
+        "id": "machine_high_row",
+        "name": "High Row Machine",
+        "type": "Plate-Loaded",
+        "category": "back_machines",
+        "description": "High-to-low diagonal pulling path; specifically targets the upper lats and middle trapezius fibers.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [
+            "weight_plates"
+        ],
+        "is_essential": false,
+        "is_essential_home": false,
+        "goal_tags": [
+            "gain muscle"
+        ],
+        "image_path": null
+    },
+    {
+        "id": "machine_low_row",
+        "name": "Low Row Machine",
+        "type": "Selectorized",
+        "category": "back_machines",
+        "description": "Low-to-high diagonal pulling trajectory; emphasizes the lower lat fibers and mid-back thickness.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [],
+        "is_essential": false,
+        "is_essential_home": false,
+        "goal_tags": [
+            "gain muscle"
+        ],
+        "image_path": null
+    },
+    {
+        "id": "machine_seated_leg_curl",
+        "name": "Seated Leg Curl",
+        "type": "Selectorized",
+        "category": "leg_machines",
+        "description": "Seated hamstring isolation; uses thigh pads to prevent hip movement for strict posterior chain engagement.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [],
+        "is_essential": true,
+        "is_essential_home": false,
+        "goal_tags": [],
+        "image_path": null
+    },
+    {
+        "id": "machine_leg_extension",
+        "name": "Leg Extension Machine",
+        "type": "Selectorized",
+        "category": "leg_machines",
+        "description": "Seated quad isolation; uses a guided arc to target the rectus femoris and vastus muscles with constant tension.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [],
+        "is_essential": true,
+        "is_essential_home": false,
+        "goal_tags": [],
+        "image_path": null
+    },
+    {
+        "id": "machine_lying_leg_curl",
+        "name": "Lying Leg Curl",
+        "type": "Selectorized",
+        "category": "leg_machines",
+        "description": "Prone hamstring isolation; allows for a full muscle stretch and peak contraction in the lower leg.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [],
+        "is_essential": true,
+        "is_essential_home": false,
+        "goal_tags": [],
+        "image_path": null
+    },
+    {
+        "id": "machine_standing_leg_curl",
+        "name": "Standing Leg Curl",
+        "type": "Selectorized",
+        "category": "leg_machines",
+        "description": "Standing unilateral hamstring isolation; ideal for targeting each leg independently to fix imbalances.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [],
+        "is_essential": false,
+        "is_essential_home": false,
+        "goal_tags": [
+            "maintain weight"
+        ],
+        "image_path": null
+    },
+    {
+        "id": "machine_hip_adductor",
+        "name": "Hip Adductor (Inner Thigh)",
+        "type": "Selectorized",
+        "category": "leg_machines",
+        "description": "Targeted isolation for the inner thigh; provides inward resistance during the leg closing phase.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [],
+        "is_essential": false,
+        "is_essential_home": false,
+        "goal_tags": [
+            "maintain weight"
+        ],
+        "image_path": null
+    },
+    {
+        "id": "machine_hip_abductor",
+        "name": "Hip Abductor (Outer Thigh)",
+        "type": "Selectorized",
+        "category": "leg_machines",
+        "description": "Targeted isolation for the glute medius and outer hip; provides outward resistance during leg opening.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [],
+        "is_essential": false,
+        "is_essential_home": false,
+        "goal_tags": [
+            "maintain weight"
+        ],
+        "image_path": null
+    },
+    {
+        "id": "machine_glute_kickback",
+        "name": "Glute Kickback Machine",
+        "type": "Selectorized",
+        "category": "leg_machines",
+        "description": "Rear-driving isolation machine for the glutes; utilizes a guided backward path for peak contraction.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [],
+        "is_essential": false,
+        "is_essential_home": false,
+        "goal_tags": [
+            "gain muscle"
+        ],
+        "image_path": null
+    },
+    {
+        "id": "machine_hip_thrust",
+        "name": "Hip Thrust Machine",
+        "type": "Plate-Loaded",
+        "category": "leg_machines",
+        "description": "Specialized platform for glute bridging; allows for heavy posterior chain loading without a traditional barbell.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [
+            "weight_plates"
+        ],
+        "is_essential": false,
+        "is_essential_home": false,
+        "goal_tags": [
+            "gain muscle"
+        ],
+        "image_path": null
+    },
+    {
+        "id": "machine_reverse_hyper",
+        "name": "Reverse Hyperextension",
+        "type": "Machine",
+        "category": "leg_machines",
+        "description": "Dynamic glute and lower back machine; utilizes swinging resistance for spinal decompression and posterior chain health.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [],
+        "is_essential": false,
+        "is_essential_home": false,
+        "goal_tags": [
+            "maintain weight"
+        ],
+        "image_path": null
+    },
+    {
+        "id": "machine_seated_calf_raise",
+        "name": "Seated Calf Raise",
+        "type": "Plate-Loaded",
+        "category": "leg_machines",
+        "description": "Knee-bent calf isolation; specifically targets the soleus muscle by removing gastrocnemius involvement.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [
+            "weight_plates"
+        ],
+        "is_essential": true,
+        "is_essential_home": false,
+        "goal_tags": [],
+        "image_path": null
+    },
+    {
+        "id": "machine_standing_calf",
+        "name": "Standing Calf Raise",
+        "type": "Selectorized",
+        "category": "leg_machines",
+        "description": "Straight-leg calf isolation; focuses resistance on the gastrocnemius via a vertical guided path.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [],
+        "is_essential": true,
+        "is_essential_home": false,
+        "goal_tags": [],
+        "image_path": null
+    },
+    {
+        "id": "machine_rotary_calf",
+        "name": "Rotary Calf Machine",
+        "type": "Selectorized",
+        "category": "leg_machines",
+        "description": "Seated calf isolation with a pivoting footplate; allows for a deep stretch and full range of ankle motion.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [],
+        "is_essential": false,
+        "is_essential_home": false,
+        "goal_tags": [
+            "maintain weight"
+        ],
+        "image_path": null
+    },
+    {
+        "id": "machine_preacher_curl",
+        "name": "Preacher Curl Machine",
+        "type": "Selectorized",
+        "category": "arm_machines",
+        "description": "Padded arm support for strict bicep isolation; prevents momentum by locking elbow position during the curl.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [],
+        "is_essential": true,
+        "is_essential_home": false,
+        "goal_tags": [],
+        "image_path": null
+    },
+    {
+        "id": "machine_seated_bicep",
+        "name": "Seated Bicep Curl",
+        "type": "Selectorized",
+        "category": "arm_machines",
+        "description": "Guided weight-stack machine for bicep flexion; provides maximum stability and constant muscle tension.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [],
+        "is_essential": true,
+        "is_essential_home": false,
+        "goal_tags": [],
+        "image_path": null
+    },
+    {
+        "id": "plate_bicep_curl",
+        "name": "Plate-Loaded Bicep Curl",
+        "type": "Plate-Loaded",
+        "category": "arm_machines",
+        "description": "Heavy-duty bicep isolation with independent arm movement; allows for high-capacity plate-loaded loading.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [
+            "weight_plates"
+        ],
+        "is_essential": false,
+        "is_essential_home": false,
+        "goal_tags": [
+            "gain muscle"
+        ],
+        "image_path": null
+    },
+    {
+        "id": "machine_hammer_curl",
+        "name": "Hammer Curl Machine",
+        "type": "Selectorized",
+        "category": "arm_machines",
+        "description": "Neutral-grip isolation machine; targets the brachialis and forearms to build comprehensive arm thickness.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [],
+        "is_essential": false,
+        "is_essential_home": false,
+        "goal_tags": [
+            "gain muscle"
+        ],
+        "image_path": null
+    },
+    {
+        "id": "machine_arm_curl_dual",
+        "name": "Iso-Lateral Bicep Curl",
+        "type": "Plate/Stack",
+        "category": "arm_machines",
+        "description": "Dual-independent curling handles; allows for unilateral bicep training to fix strength imbalances.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [],
+        "is_essential": false,
+        "is_essential_home": false,
+        "goal_tags": [
+            "gain muscle"
+        ],
+        "image_path": null
+    },
+    {
+        "id": "machine_tricep_extension",
+        "name": "Seated Tricep Extension",
+        "type": "Selectorized",
+        "category": "arm_machines",
+        "description": "Seated tricep isolation; provides a guided overhead or forward path to hit all three tricep heads.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [],
+        "is_essential": true,
+        "is_essential_home": false,
+        "goal_tags": [],
+        "image_path": null
+    },
+    {
+        "id": "machine_seated_dip",
+        "name": "Seated Dip Machine",
+        "type": "Selectorized",
+        "category": "arm_machines",
+        "description": "Seated vertical pressing machine mimicking parallel dips; targets triceps and chest with guided stability.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [],
+        "is_essential": true,
+        "is_essential_home": false,
+        "goal_tags": [],
+        "image_path": null
+    },
+    {
+        "id": "machine_assisted_dip",
+        "name": "Assisted Dip Machine",
+        "type": "Selectorized",
+        "category": "arm_machines",
+        "description": "Counter-weighted vertical dip station; provides adjustable assistance for tricep and chest development.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [],
+        "is_essential": true,
+        "is_essential_home": false,
+        "goal_tags": [
+            "lose weight"
+        ],
+        "image_path": null
+    },
+    {
+        "id": "machine_tricep_press",
+        "name": "Tricep Pressdown Machine",
+        "type": "Selectorized",
+        "category": "arm_machines",
+        "description": "Guided downward pressing for tricep isolation; ensures strict form and consistent resistance through the movement.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [],
+        "is_essential": true,
+        "is_essential_home": false,
+        "goal_tags": [],
+        "image_path": null
+    },
+    {
+        "id": "machine_tricep_kickback",
+        "name": "Tricep Kickback Machine",
+        "type": "Niche",
+        "category": "arm_machines",
+        "description": "Specialized isolation for the tricep long head; utilizes a guided backward arc for peak contraction.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [],
+        "is_essential": false,
+        "is_essential_home": false,
+        "goal_tags": [
+            "maintain weight"
+        ],
+        "image_path": null
+    },
+    {
+        "id": "plate_tricep_dip",
+        "name": "Hammer Strength Dip",
+        "type": "Plate-Loaded",
+        "category": "arm_machines",
+        "description": "Plate-loaded pressing machine for tricep power; utilizes independent levers for balanced strength development.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [
+            "weight_plates"
+        ],
+        "is_essential": false,
+        "is_essential_home": false,
+        "goal_tags": [
+            "gain muscle"
+        ],
+        "image_path": null
+    },
+    {
+        "id": "machine_ab_crunch",
+        "name": "Seated Ab Crunch",
+        "type": "Selectorized",
+        "category": "core_machines",
+        "description": "Weight-stack machine for torso flexion; isolates the rectus abdominis while providing lumbar support and a guided path.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [],
+        "is_essential": true,
+        "is_essential_home": false,
+        "goal_tags": [],
+        "image_path": null
+    },
+    {
+        "id": "machine_total_abdominal",
+        "name": "Total Abdominal Machine",
+        "type": "Selectorized",
+        "category": "core_machines",
+        "description": "Dual-pivot machine that crunches the upper body while lifting the knees; targets the entire abdominal wall simultaneously.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [],
+        "is_essential": true,
+        "is_essential_home": false,
+        "goal_tags": [],
+        "image_path": null
+    },
+    {
+        "id": "machine_ab_coaster",
+        "name": "Ab Coaster",
+        "type": "Glide",
+        "category": "core_machines",
+        "description": "Curved track system for bottom-up knee raises; isolates the lower abdominals by utilizing a gliding motion to eliminate momentum.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [],
+        "is_essential": false,
+        "is_essential_home": false,
+        "goal_tags": [
+            "lose weight"
+        ],
+        "image_path": null
+    },
+    {
+        "id": "machine_ab_crunch_bench",
+        "name": "Plate-Loaded Ab Bench",
+        "type": "Plate-Loaded",
+        "category": "core_machines",
+        "description": "Adjustable bench featuring a plate-loaded resistance arm; enables high-capacity loaded crunches for advanced core strength.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [
+            "weight_plates"
+        ],
+        "is_essential": false,
+        "is_essential_home": false,
+        "goal_tags": [
+            "gain muscle"
+        ],
+        "image_path": null
+    },
+    {
+        "id": "machine_rotary_torso",
+        "name": "Rotary Torso Machine",
+        "type": "Selectorized",
+        "category": "core_machines",
+        "description": "Rotating seat or handle system for spinal rotation; provides isolated resistance for the internal and external obliques.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [],
+        "is_essential": true,
+        "is_essential_home": false,
+        "goal_tags": [],
+        "image_path": null
+    },
+    {
+        "id": "machine_oblique_crunch",
+        "name": "Side Crunch Machine",
+        "type": "Selectorized",
+        "category": "core_machines",
+        "description": "Side-flexion machine targeting the lateral abdominal wall; offers guided resistance for oblique development.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [],
+        "is_essential": false,
+        "is_essential_home": false,
+        "goal_tags": [
+            "maintain weight"
+        ],
+        "image_path": null
+    },
+    {
+        "id": "captain_chair",
+        "name": "Captain’s Chair / VKR",
+        "type": "Frame",
+        "category": "core_machines",
+        "description": "Elevated frame with back and arm supports; allows for hanging leg and knee raises to target the lower abdominals and hip flexors.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [],
+        "is_essential": true,
+        "is_essential_home": false,
+        "goal_tags": [],
+        "image_path": null
+    },
+    {
+        "id": "machine_assisted_abs",
+        "name": "Assisted Ab Station",
+        "type": "Frame",
+        "category": "core_machines",
+        "description": "Bench or chair station with lever-based assistance; provides a guided path and lower back stability for leg-raise variations.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [],
+        "is_essential": false,
+        "is_essential_home": false,
+        "goal_tags": [
+            "maintain weight"
+        ],
+        "image_path": null
+    },
+    {
+        "id": "machine_back_extension_seated",
+        "name": "Seated Back Extension",
+        "type": "Selectorized",
+        "category": "core_machines",
+        "description": "Guided extension machine pushing a lumbar pad backward; isolates the spinal erectors and lower back muscles.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [],
+        "is_essential": true,
+        "is_essential_home": false,
+        "goal_tags": [],
+        "image_path": null
+    },
+    {
+        "id": "roman_chair",
+        "name": "Roman Chair / 45° Hyper",
+        "type": "Frame",
+        "category": "core_machines",
+        "description": "Angled support frame for hip and back extension; facilitates bodyweight or weighted movements for the lower back and glutes.",
+        "environment": [
+            "gym",
+            "home"
+        ],
+        "dependencies": [],
+        "is_essential": true,
+        "is_essential_home": true,
+        "goal_tags": [],
+        "image_path": null
+    },
+    {
+        "id": "ghd_machine",
+        "name": "GHD (Glute Ham Developer)",
+        "type": "Frame",
+        "category": "core_machines",
+        "description": "Specialized high-profile bench for horizontal extension and flexion; targets the posterior chain and core through intense recruitment.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [],
+        "is_essential": false,
+        "is_essential_home": false,
+        "goal_tags": [
+            "gain muscle"
+        ],
+        "image_path": null
+    },
+    {
+        "id": "cable_functional_trainer",
+        "name": "Functional Trainer",
+        "type": "Dual Stack",
+        "category": "cables",
+        "description": "Dual-pulley system with independent height adjustments; enables unrestricted multi-planar movements for functional strength.",
+        "environment": [
+            "gym",
+            "home"
+        ],
+        "dependencies": [],
+        "is_essential": true,
+        "is_essential_home": true,
+        "goal_tags": [],
+        "image_path": null
+    },
+    {
+        "id": "cable_crossover_machine",
+        "name": "Cable Crossover Station",
+        "type": "Multi-User",
+        "category": "cables",
+        "description": "Wide-frame dual pulley towers; optimized for chest flies and bilateral isolation movements with various resistance angles.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [],
+        "is_essential": true,
+        "is_essential_home": false,
+        "goal_tags": [],
+        "image_path": null
+    },
+    {
+        "id": "cable_single_pulley",
+        "name": "Single Adjustable Column",
+        "type": "Single Stack",
+        "category": "cables",
+        "description": "Space-saving vertical rail with a single adjustable pulley; ideal for unilateral upper and lower body exercises.",
+        "environment": [
+            "gym",
+            "home"
+        ],
+        "dependencies": [],
+        "is_essential": true,
+        "is_essential_home": false,
+        "goal_tags": [],
+        "image_path": null
+    },
+    {
+        "id": "cable_jungle_gym",
+        "name": "4-8 Station Jungle Gym",
+        "type": "Multi-User",
+        "category": "cables",
+        "description": "Central multi-pulley unit combining lats, rows, and adjustable columns; supports high-volume circuit training.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [],
+        "is_essential": true,
+        "is_essential_home": false,
+        "goal_tags": [],
+        "image_path": null
+    },
+    {
+        "id": "cable_lat_pulldown",
+        "name": "Dedicated Lat Pulldown",
+        "type": "Single Stack",
+        "category": "back_machines",
+        "description": "Fixed overhead pulley with thigh stabilization pads; specifically designed for vertical pulling and lat development.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [],
+        "is_essential": true,
+        "is_essential_home": false,
+        "goal_tags": [],
+        "image_path": null
+    },
+    {
+        "id": "cable_seated_row",
+        "name": "Dedicated Low Row",
+        "type": "Single Stack",
+        "category": "back_machines",
+        "description": "Fixed low-pulley station with footplates and a bench; targets mid-back thickness and rhomboid engagement.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [],
+        "is_essential": true,
+        "is_essential_home": false,
+        "goal_tags": [],
+        "image_path": null
+    },
+    {
+        "id": "cable_ercolina",
+        "name": "Ercolina / Rehab Pulley",
+        "type": "Single Stack",
+        "category": "cables",
+        "description": "High-precision pulley with ultra-smooth resistance and small weight increments; optimized for mobility and rehabilitation.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [],
+        "is_essential": false,
+        "is_essential_home": false,
+        "goal_tags": [
+            "maintain weight"
+        ],
+        "image_path": null
+    },
+    {
+        "id": "att_d_handle",
+        "name": "Single D-Handle",
+        "type": "Attachment",
+        "category": "cable_attachments",
+        "description": "Single-hand grip for unilateral cable work; essential for flies, lateral raises, and rotational core movements.",
+        "environment": [
+            "gym",
+            "home"
+        ],
+        "dependencies": [],
+        "is_essential": true,
+        "is_essential_home": false,
+        "goal_tags": [],
+        "image_path": null
+    },
+    {
+        "id": "att_rope",
+        "name": "Tricep Rope",
+        "type": "Attachment",
+        "category": "cable_attachments",
+        "description": "Flexible heavy-duty rope; optimizes tricep pushdowns, face pulls, and hammer curl variations with a neutral grip.",
+        "environment": [
+            "gym",
+            "home"
+        ],
+        "dependencies": [],
+        "is_essential": true,
+        "is_essential_home": false,
+        "goal_tags": [],
+        "image_path": null
+    },
+    {
+        "id": "att_lat_bar",
+        "name": "Lat Pulldown Bar",
+        "type": "Attachment",
+        "category": "cable_attachments",
+        "description": "Long wide-grip bar; used for vertical pulling and straight-arm pulldown variations to target the lats.",
+        "environment": [
+            "gym",
+            "home"
+        ],
+        "dependencies": [],
+        "is_essential": true,
+        "is_essential_home": false,
+        "goal_tags": [],
+        "image_path": null
+    },
+    {
+        "id": "att_straight_bar",
+        "name": "Straight Bar (Short)",
+        "type": "Attachment",
+        "category": "cable_attachments",
+        "description": "Rigid short bar; versatile for cable bicep curls, tricep extensions, and seated rows.",
+        "environment": [
+            "gym",
+            "home"
+        ],
+        "dependencies": [],
+        "is_essential": true,
+        "is_essential_home": false,
+        "goal_tags": [],
+        "image_path": null
+    },
+    {
+        "id": "att_v_bar",
+        "name": "V-Bar / Tricep V",
+        "type": "Attachment",
+        "category": "cable_attachments",
+        "description": "Fixed V-shaped handle; provides a natural wrist angle for tricep pushdowns and overhead extensions.",
+        "environment": [
+            "gym",
+            "home"
+        ],
+        "dependencies": [],
+        "is_essential": true,
+        "is_essential_home": false,
+        "goal_tags": [],
+        "image_path": null
+    },
+    {
+        "id": "att_ez_curl_bar",
+        "name": "EZ Curl Cable Bar",
+        "type": "Attachment",
+        "category": "cable_attachments",
+        "description": "Cambered bar reducing wrist strain; optimized for bicep curls and tricep pressdowns with semi-supinated grips.",
+        "environment": [
+            "gym",
+            "home"
+        ],
+        "dependencies": [],
+        "is_essential": true,
+        "is_essential_home": false,
+        "goal_tags": [],
+        "image_path": null
+    },
+    {
+        "id": "att_ankle_strap",
+        "name": "Ankle Strap",
+        "type": "Attachment",
+        "category": "cable_attachments",
+        "description": "Padded cuff for lower-body attachment; facilitates glute kickbacks, hip abduction, and leg curls on a pulley.",
+        "environment": [
+            "gym",
+            "home"
+        ],
+        "dependencies": [],
+        "is_essential": true,
+        "is_essential_home": false,
+        "goal_tags": [],
+        "image_path": null
+    },
+    {
+        "id": "att_row_handle",
+        "name": "V-Row / Close Grip Handle",
+        "type": "Attachment",
+        "category": "cable_attachments",
+        "description": "Close-grip parallel handle; maximizes mid-back recruitment during seated rows and close-grip pulldowns.",
+        "environment": [
+            "gym",
+            "home"
+        ],
+        "dependencies": [],
+        "is_essential": true,
+        "is_essential_home": false,
+        "goal_tags": [],
+        "image_path": null
+    },
+    {
+        "id": "dumbbell",
+        "name": "Dumbbells",
+        "type": "Pair/Set",
+        "category": "free_weights",
+        "description": "Independent handheld weights; provides maximum versatility for unilateral and bilateral strength training.",
+        "environment": [
+            "gym",
+            "home"
+        ],
+        "dependencies": [],
+        "is_essential": true,
+        "is_essential_home": true,
+        "goal_tags": [],
+        "image_path": null
+    },
+    {
+        "id": "barbell",
+        "name": "Barbell",
+        "type": "Long Bar",
+        "category": "free_weights",
+        "description": "Standard high-capacity bar for heavy compound lifts and progressive strength development.",
+        "environment": [
+            "gym",
+            "home"
+        ],
+        "dependencies": [
+            "weight_plates"
+        ],
+        "is_essential": true,
+        "is_essential_home": true,
+        "goal_tags": [],
+        "image_path": null
+    },
+    {
+        "id": "ez_barbell",
+        "name": "EZ Curl Bar",
+        "type": "W-Bar",
+        "category": "free_weights",
+        "description": "Cambered bar designed to neutralize wrist angles during arm isolation and extension movements.",
+        "environment": [
+            "gym",
+            "home"
+        ],
+        "dependencies": [
+            "weight_plates"
+        ],
+        "is_essential": true,
+        "is_essential_home": false,
+        "goal_tags": [],
+        "image_path": null
+    },
+    {
+        "id": "kettlebell",
+        "name": "Kettlebells",
+        "type": "Ball/Handle",
+        "category": "free_weights",
+        "description": "Off-center weighted tools optimized for ballistic swings, carries, and functional stability work.",
+        "environment": [
+            "gym",
+            "home"
+        ],
+        "dependencies": [],
+        "is_essential": false,
+        "is_essential_home": true,
+        "goal_tags": [
+            "lose weight"
+        ],
+        "image_path": null
+    },
+    {
+        "id": "trap_bar",
+        "name": "Trap Bar (Hex Bar)",
+        "type": "Specialty",
+        "category": "free_weights",
+        "description": "Hexagonal bar for neutral-grip deadlifting; centers the load to reduce lower back stress.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [
+            "weight_plates"
+        ],
+        "is_essential": false,
+        "is_essential_home": false,
+        "goal_tags": [
+            "gain muscle"
+        ],
+        "image_path": null
+    },
+    {
+        "id": "weight_plates",
+        "name": "Weight Plates",
+        "type": "Plates",
+        "category": "free_weights",
+        "description": "Incremental disc weights used to load barbells and plate-loaded machines.",
+        "environment": [
+            "gym",
+            "home"
+        ],
+        "dependencies": [],
+        "is_essential": true,
+        "is_essential_home": true,
+        "goal_tags": [],
+        "image_path": null
+    },
+    {
+        "id": "medicine_ball",
+        "name": "Medicine Ball",
+        "type": "Weighted Ball",
+        "category": "free_weights",
+        "description": "Firm weighted ball for dynamic throws, catches, and core rotational training.",
+        "environment": [
+            "gym",
+            "home"
+        ],
+        "dependencies": [],
+        "is_essential": false,
+        "is_essential_home": false,
+        "goal_tags": [
+            "lose weight"
+        ],
+        "image_path": null
+    },
+    {
+        "id": "weighted_vest",
+        "name": "Weighted Vest",
+        "type": "Add-on",
+        "category": "bodyweight",
+        "description": "Wearable resistance to increase the difficulty of calisthenics and metabolic conditioning.",
+        "environment": [
+            "gym",
+            "home",
+            "bodyweight"
+        ],
+        "dependencies": [],
+        "is_essential": false,
+        "is_essential_home": false,
+        "goal_tags": [
+            "lose weight"
+        ],
+        "image_path": null
+    },
+    {
+        "id": "flat_bench",
+        "name": "Flat Bench",
+        "type": "Support",
+        "category": "supports",
+        "description": "Stable horizontal platform; essential for bench pressing, rows, and various seated exercises.",
+        "environment": [
+            "gym",
+            "home"
+        ],
+        "dependencies": [],
+        "is_essential": true,
+        "is_essential_home": false,
+        "goal_tags": [],
+        "image_path": null
+    },
+    {
+        "id": "adjustable_bench",
+        "name": "Incline/Decline Bench",
+        "type": "Support",
+        "category": "supports",
+        "description": "Padded bench with variable angles to target specific regions of the chest, shoulders, and back.",
+        "environment": [
+            "gym",
+            "home"
+        ],
+        "dependencies": [],
+        "is_essential": true,
+        "is_essential_home": true,
+        "goal_tags": [],
+        "image_path": null
+    },
+    {
+        "id": "squat_rack",
+        "name": "Squat Rack / Power Cage",
+        "type": "Support",
+        "category": "supports",
+        "description": "Safety frame with adjustable supports for heavy barbell squatting and pressing movements.",
+        "environment": [
+            "gym",
+            "home"
+        ],
+        "dependencies": [],
+        "is_essential": true,
+        "is_essential_home": true,
+        "goal_tags": [],
+        "image_path": null
+    },
+    {
+        "id": "preacher_bench",
+        "name": "Preacher Curl Bench",
+        "type": "Support",
+        "category": "supports",
+        "description": "Angled arm support platform; isolates the biceps by preventing shoulder and torso momentum.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [],
+        "is_essential": true,
+        "is_essential_home": false,
+        "goal_tags": [],
+        "image_path": null
+    },
+    {
+        "id": "machine_treadmill",
+        "name": "Treadmill",
+        "type": "Motorized",
+        "category": "cardio",
+        "description": "Motorized platform for walking, running, and incline training; tracks speed, distance, and metabolic metrics.",
+        "environment": [
+            "gym",
+            "home"
+        ],
+        "dependencies": [],
+        "is_essential": true,
+        "is_essential_home": false,
+        "goal_tags": [],
+        "image_path": null
+    },
+    {
+        "id": "machine_stationary_bike",
+        "name": "Stationary Bike",
+        "type": "Magnetic",
+        "category": "cardio",
+        "description": "Stationary cycling unit with adjustable magnetic resistance; provides low-impact aerobic and anaerobic conditioning.",
+        "environment": [
+            "gym",
+            "home"
+        ],
+        "dependencies": [],
+        "is_essential": true,
+        "is_essential_home": true,
+        "goal_tags": [],
+        "image_path": null
+    },
+    {
+        "id": "machine_elliptical",
+        "name": "Elliptical Trainer",
+        "type": "Cross-Trainer",
+        "category": "cardio",
+        "description": "Low-impact trainer simulating running or climbing; engages both upper and lower body simultaneously.",
+        "environment": [
+            "gym",
+            "home"
+        ],
+        "dependencies": [],
+        "is_essential": true,
+        "is_essential_home": false,
+        "goal_tags": [],
+        "image_path": null
+    },
+    {
+        "id": "machine_stair_climber",
+        "name": "Stairclimber / Stairmaster",
+        "type": "Step-Mill",
+        "category": "cardio",
+        "description": "Revolving staircase for continuous vertical climbing; focuses on lower-body endurance and cardiovascular capacity.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [],
+        "is_essential": true,
+        "is_essential_home": false,
+        "goal_tags": [],
+        "image_path": null
+    },
+    {
+        "id": "machine_air_bike",
+        "name": "Assault / Air Bike",
+        "type": "Fan-Based",
+        "category": "cardio",
+        "description": "Fan-resistance bicycle using arms and legs; resistance increases exponentially with effort for HIIT training.",
+        "environment": [
+            "gym",
+            "home"
+        ],
+        "dependencies": [],
+        "is_essential": false,
+        "is_essential_home": false,
+        "goal_tags": [
+            "lose weight"
+        ],
+        "image_path": null
+    },
+    {
+        "id": "machine_rowing",
+        "name": "Rowing Machine (Erg)",
+        "type": "Air/Water",
+        "category": "cardio",
+        "description": "Full-body pulling ergometer; simulates aquatic rowing for high-intensity metabolic conditioning.",
+        "environment": [
+            "gym",
+            "home"
+        ],
+        "dependencies": [],
+        "is_essential": true,
+        "is_essential_home": false,
+        "goal_tags": [],
+        "image_path": null
+    },
+    {
+        "id": "machine_skierg",
+        "name": "SkiErg",
+        "type": "Air",
+        "category": "cardio",
+        "description": "Vertical pulling machine mimicking Nordic skiing; targets the core, back, and arms with high-cadence intervals.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [],
+        "is_essential": false,
+        "is_essential_home": false,
+        "goal_tags": [
+            "lose weight"
+        ],
+        "image_path": null
+    },
+    {
+        "id": "machine_curved_treadmill",
+        "name": "Manual / Curved Treadmill",
+        "type": "Non-Motorized",
+        "category": "cardio",
+        "description": "Self-powered treadmill with a curved deck; forces natural running mechanics and high caloric expenditure.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [],
+        "is_essential": false,
+        "is_essential_home": false,
+        "goal_tags": [
+            "lose weight"
+        ],
+        "image_path": null
+    },
+    {
+        "id": "machine_arc_trainer",
+        "name": "Arc Trainer",
+        "type": "Hybrid",
+        "category": "cardio",
+        "description": "Hybrid cross-trainer with a natural arc motion; designed to reduce joint stress while maintaining high intensity.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [],
+        "is_essential": false,
+        "is_essential_home": false,
+        "goal_tags": [
+            "lose weight"
+        ],
+        "image_path": null
+    },
+    {
+        "id": "machine_recumbent_bike",
+        "name": "Recumbent Bike",
+        "type": "Seated",
+        "category": "cardio",
+        "description": "Seated bicycle with full back support; ideal for sustained cardio with minimal lumbar strain.",
+        "environment": [
+            "gym",
+            "home"
+        ],
+        "dependencies": [],
+        "is_essential": true,
+        "is_essential_home": false,
+        "goal_tags": [],
+        "image_path": null
+    },
+    {
+        "id": "machine_spin_bike",
+        "name": "Spin Bike",
+        "type": "Friction",
+        "category": "cardio",
+        "description": "High-performance cycle with a heavy flywheel; optimized for high-cadence cycling and variable resistance.",
+        "environment": [
+            "gym",
+            "home"
+        ],
+        "dependencies": [],
+        "is_essential": true,
+        "is_essential_home": false,
+        "goal_tags": [],
+        "image_path": null
+    },
+    {
+        "id": "machine_vertical_climber",
+        "name": "Vertical Climber",
+        "type": "VersaClimber",
+        "category": "cardio",
+        "description": "Full-body climbing simulator; coordinates arm and leg movements for vertical ascent conditioning.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [],
+        "is_essential": false,
+        "is_essential_home": false,
+        "goal_tags": [
+            "lose weight"
+        ],
+        "image_path": null
+    },
+    {
+        "id": "machine_upper_body_erg",
+        "name": "Arm Crank (UBE)",
+        "type": "Upper Body",
+        "category": "cardio",
+        "description": "Seated arm-cycling unit; provides cardiovascular conditioning when lower-body movement is restricted.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [],
+        "is_essential": false,
+        "is_essential_home": false,
+        "goal_tags": [
+            "maintain weight"
+        ],
+        "image_path": null
+    },
+    {
+        "id": "pull_up_bar",
+        "name": "Pull-up Bar",
+        "type": "Station",
+        "category": "bodyweight",
+        "description": "Fixed horizontal bar for vertical pulling; essential for chin-ups, pull-ups, and hanging core work.",
+        "environment": [
+            "gym",
+            "home",
+            "bodyweight"
+        ],
+        "dependencies": [],
+        "is_essential": true,
+        "is_essential_home": true,
+        "goal_tags": [],
+        "image_path": null
+    },
+    {
+        "id": "dip_station",
+        "name": "Dip Station",
+        "type": "Station",
+        "category": "bodyweight",
+        "description": "Parallel bars for vertical pushing; targets the triceps, chest, and anterior deltoids.",
+        "environment": [
+            "gym",
+            "home",
+            "bodyweight"
+        ],
+        "dependencies": [],
+        "is_essential": true,
+        "is_essential_home": false,
+        "goal_tags": [],
+        "image_path": null
+    },
+    {
+        "id": "parallettes",
+        "name": "Parallettes",
+        "type": "Floor Frame",
+        "category": "bodyweight",
+        "description": "Low portable bars for floor-based gymnastics; enables L-sits, handstands, and deep push-up variations.",
+        "environment": [
+            "gym",
+            "home",
+            "bodyweight"
+        ],
+        "dependencies": [],
+        "is_essential": false,
+        "is_essential_home": false,
+        "goal_tags": [
+            "gain muscle"
+        ],
+        "image_path": null
+    },
+    {
+        "id": "power_tower",
+        "name": "Power Tower",
+        "type": "Multi-Station",
+        "category": "bodyweight",
+        "description": "Free-standing unit incorporating pull-up, dip, and leg-raise stations for comprehensive calisthenics.",
+        "environment": [
+            "gym",
+            "home",
+            "bodyweight"
+        ],
+        "dependencies": [],
+        "is_essential": false,
+        "is_essential_home": false,
+        "goal_tags": [
+            "maintain weight"
+        ],
+        "image_path": null
+    },
+    {
+        "id": "stall_bars",
+        "name": "Stall Bars (Wall Bars)",
+        "type": "Gymnastics",
+        "category": "bodyweight",
+        "description": "Wall-mounted wooden rungs; facilitates advanced gymnastics, flexibility work, and vertical core isolation.",
+        "environment": [
+            "gym"
+        ],
+        "dependencies": [],
+        "is_essential": false,
+        "is_essential_home": false,
+        "goal_tags": [
+            "maintain weight"
+        ],
+        "image_path": null
+    },
+    {
+        "id": "gymnastic_rings",
+        "name": "Gymnastic Rings",
+        "type": "Unstable",
+        "category": "bodyweight",
+        "description": "Suspended rings providing extreme instability; forces maximum recruitment of stabilizer muscles for pulling and pushing.",
+        "environment": [
+            "gym",
+            "home",
+            "bodyweight"
+        ],
+        "dependencies": [],
+        "is_essential": false,
+        "is_essential_home": false,
+        "goal_tags": [
+            "gain muscle"
+        ],
+        "image_path": null
+    },
+    {
+        "id": "suspension_trainer",
+        "name": "Suspension Trainer (TRX)",
+        "type": "Strap",
+        "category": "bodyweight",
+        "description": "Adjustable straps for body-angled resistance; allows for functional rows, presses, and core stability exercises.",
+        "environment": [
+            "gym",
+            "home",
+            "bodyweight"
+        ],
+        "dependencies": [],
+        "is_essential": false,
+        "is_essential_home": false,
+        "goal_tags": [
+            "lose weight"
+        ],
+        "image_path": null
+    },
+    {
+        "id": "push_up_handles",
+        "name": "Push-up Handles",
+        "type": "Grip",
+        "category": "bodyweight",
+        "description": "Elevated floor grips to neutralize wrist angles; increases range of motion for push-up variations.",
+        "environment": [
+            "gym",
+            "home",
+            "bodyweight"
+        ],
+        "dependencies": [],
+        "is_essential": false,
+        "is_essential_home": false,
+        "goal_tags": [
+            "gain muscle"
+        ],
+        "image_path": null
+    },
+    {
+        "id": "yoga_mat",
+        "name": "Exercise / Yoga Mat",
+        "type": "Floor",
+        "category": "bodyweight",
+        "description": "Cushioned non-slip surface; provides padding for floor-based calisthenics, stretching, and mobility work.",
+        "environment": [
+            "gym",
+            "home",
+            "bodyweight"
+        ],
+        "dependencies": [],
+        "is_essential": true,
+        "is_essential_home": true,
+        "goal_tags": [],
+        "image_path": null
+    },
+    {
+        "id": "ab_roller",
+        "name": "Ab Roller / Wheel",
+        "type": "Core",
+        "category": "bodyweight",
+        "description": "Handled wheel for anti-extension core work; targets the entire abdominal wall through eccentric loading.",
+        "environment": [
+            "gym",
+            "home",
+            "bodyweight"
+        ],
+        "dependencies": [],
+        "is_essential": false,
+        "is_essential_home": false,
+        "goal_tags": [
+            "gain muscle"
+        ],
+        "image_path": null
+    },
+    {
+        "id": "yoga_blocks",
+        "name": "Yoga Blocks",
+        "type": "Support",
+        "category": "bodyweight",
+        "description": "Supportive foam or cork blocks; assists with reach and alignment during flexibility and mobility training.",
+        "environment": [
+            "gym",
+            "home",
+            "bodyweight"
+        ],
+        "dependencies": [],
+        "is_essential": false,
+        "is_essential_home": false,
+        "goal_tags": [
+            "maintain weight"
+        ],
+        "image_path": null
+    }
+]

@@ -3,10 +3,12 @@
 import 'package:flutter/material.dart';
 import 'package:myapp/models/workout_data.dart';
 import 'package:myapp/services/auth_service.dart';
-import 'package:myapp/services/firestore_service.dart';
+
 import 'package:myapp/screens/workout_summary_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
+
+import '../services/local_storage_service.dart';
 
 class WorkoutLoggingScreenBasic extends StatefulWidget {
   final String programId;
@@ -24,27 +26,22 @@ class WorkoutLoggingScreenBasic extends StatefulWidget {
 }
 
 class _WorkoutLoggingScreenBasicState extends State<WorkoutLoggingScreenBasic> {
-  final FirestoreService _firestoreService = FirestoreService();
-  Workout? _sessionWorkout;
-  bool _isLoading = true;
-  final Map<String, Exercise> _lastSessionData = {};
+ late final LocalStorageService _storageService;
 
   @override
   void initState() {
     super.initState();
+    _storageService = context.read<LocalStorageService>();
     _initializeSession();
   }
 
-  Future<void> _initializeSession() async {
-    final userId = context.read<AuthService>().currentUser?.uid;
-    if (userId == null) {
-      if (mounted) setState(() => _isLoading = false);
-      return;
-    }
+  Workout? _sessionWorkout;
+  bool _isLoading = true;
+  final Map<String, Exercise> _lastSessionData = {};
 
+  Future<void> _initializeSession() async {
     final today = DateTime.now();
-    Workout? existingWorkout =
-        await _firestoreService.getInProgressWorkout(userId, today);
+    Workout? existingWorkout = await _storageService.getInProgressWorkout(today);
 
     if (existingWorkout == null) {
       existingWorkout = Workout(
@@ -58,16 +55,14 @@ class _WorkoutLoggingScreenBasicState extends State<WorkoutLoggingScreenBasic> {
         exercises:
             widget.day.exercises?.map((e) => e.copyWith(sets: [])).toList() ?? [], // Fix: Null-safe list mapping
       );
-      await _firestoreService.saveInProgressWorkout(userId, existingWorkout);
+      await _storageService.saveInProgressWorkout(existingWorkout);
     }
 
     for (var exercise in existingWorkout.exercises) {
-      // Fix: Handle nullable exercise name before calling service
       final exerciseName = exercise.name ?? '';
       if (exerciseName.isEmpty) continue;
 
-      final prevLog =
-          await _firestoreService.getPreviousExerciseLog(userId, exerciseName);
+      final prevLog = await _storageService.getPreviousExerciseLog(exerciseName);
       if (prevLog != null) {
         _lastSessionData[exerciseName] = prevLog;
       }
@@ -100,9 +95,8 @@ class _WorkoutLoggingScreenBasicState extends State<WorkoutLoggingScreenBasic> {
   }
 
   Future<void> _saveProgress() async {
-    final userId = context.read<AuthService>().currentUser?.uid;
-    if (userId != null && _sessionWorkout != null) {
-      await _firestoreService.saveInProgressWorkout(userId, _sessionWorkout!);
+    if (_sessionWorkout != null) {
+      await _storageService.saveInProgressWorkout(_sessionWorkout!);
     }
   }
 
@@ -127,9 +121,8 @@ class _WorkoutLoggingScreenBasicState extends State<WorkoutLoggingScreenBasic> {
       return;
     }
 
-    await _firestoreService.saveWorkoutLog(userId, finishedWorkout);
-    await _firestoreService.deleteInProgressWorkout(
-        userId, finishedWorkout.date);
+    await _storageService.saveWorkoutLog(finishedWorkout);
+    await _storageService.deleteInProgressWorkout(finishedWorkout.date);
 
     if (mounted) {
       Navigator.pushReplacement(

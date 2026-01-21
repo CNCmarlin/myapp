@@ -5,10 +5,9 @@ import 'package:myapp/models/assistant_response.dart';
 import 'package:myapp/models/workout_data.dart';
 import 'package:myapp/screens/edit_workout_day_screen.dart';
 import 'package:myapp/services/assistant_service.dart';
-import 'package:myapp/services/auth_service.dart';
-import 'package:myapp/services/firestore_service.dart';
 import 'package:provider/provider.dart';
 import '../../../providers/onboarding_provider.dart';
+import '../../../services/local_storage_service.dart';
 import '../../../services/secure_storage_service.dart';
 
 
@@ -104,22 +103,17 @@ class _CreateProgramPageState extends State<CreateProgramPage> {
   Future<void> _saveProgram(WorkoutProgram programToSave) async {
     if (_isLoading) return;
     setState(() => _isLoading = true);
-    // Capture the navigator and scaffold messenger *before* the async gap.
-    final navigator = Navigator.of(context);
+    
     final scaffoldMessenger = ScaffoldMessenger.of(context);
 
     try {
       final onboardingProvider = context.read<OnboardingProvider>();
-      final firestoreService = context.read<FirestoreService>();
-      final userId = context.read<AuthService>().currentUser?.uid;
-      if (userId == null) throw Exception("User not found");
 
-      // We now have a more robust save method in FirestoreService
-      final newProgramId = await firestoreService.saveNewWorkoutProgram(userId, programToSave);
+      final storage = context.read<LocalStorageService>();
+
+      await storage.saveWorkoutProgram(programToSave);
       
-      onboardingProvider.updateActiveProgramId(newProgramId);
-      
-      // No need to validate here, we just care about the result.
+      onboardingProvider.updateActiveProgramId(programToSave.id);
       
       setState(() { _isProgramSaved = true; });
 

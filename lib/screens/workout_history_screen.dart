@@ -2,10 +2,10 @@
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:myapp/services/local_storage_service.dart';
 import 'package:provider/provider.dart';
 import '../models/workout_data.dart';
-import '../services/auth_service.dart';
-import '../services/firestore_service.dart';
+
 
 class WorkoutHistoryScreen extends StatefulWidget {
   const WorkoutHistoryScreen({super.key});
@@ -23,14 +23,9 @@ class _WorkoutHistoryScreenState extends State<WorkoutHistoryScreen> {
     _loadHistory();
   }
 
-  void _loadHistory() {
-    final userId = context.read<AuthService>().currentUser?.uid;
-    if (userId != null) {
-      _historyFuture = context.read<FirestoreService>().getWorkoutHistory(userId);
-    } else {
-      // Handle user not being logged in
-      _historyFuture = Future.value([]);
-    }
+ void _loadHistory() {
+    final storage = context.read<LocalStorageService>();
+    _historyFuture = storage.getWorkoutHistory();
   }
 
   @override

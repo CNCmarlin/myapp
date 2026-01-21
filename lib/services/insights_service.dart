@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 import '../models/insight_data.dart';
-import '../models/user_profile.dart';
 import '../services/ai_service.dart';
 import '../services/local_storage_service.dart';
 

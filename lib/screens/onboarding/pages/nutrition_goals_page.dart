@@ -1,5 +1,6 @@
 // lib/screens/onboarding/pages/nutrition_goals_page.dart
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:myapp/models/user_profile.dart';
 import 'package:myapp/services/nutrition_goal_service.dart';
@@ -38,6 +39,7 @@ class _NutritionGoalsPageState extends State<NutritionGoalsPage> {
     final provider = context.read<OnboardingProvider>();
     _updateControllers(provider.finalProfile);
   }
+  
 
   void _updateControllers(UserProfile profile) {
     _caloriesController.text = profile.targetCalories?.toStringAsFixed(0) ?? '';
@@ -81,15 +83,20 @@ class _NutritionGoalsPageState extends State<NutritionGoalsPage> {
         _caloriesController.text =
             (suggestions['targetCalories'] ?? 0).toString();
       }
+
+      if (kDebugMode) {
+        print("DEBUG: Suggestion received - ${suggestions.toString()}");
+      }
+      
       _proteinController.text = (suggestions['targetProtein'] ?? 0).toString();
       _carbsController.text = (suggestions['targetCarbs'] ?? 0).toString();
       _fatController.text = (suggestions['targetFat'] ?? 0).toString();
 
       provider.updateNutritionGoals(
         calories: double.tryParse(_caloriesController.text) ?? 0.0,
-        protein: (suggestions['targetProtein'] as num?)?.toDouble() ?? 0.0,
-        carbs: (suggestions['targetCarbs'] as num?)?.toDouble() ?? 0.0,
-        fat: (suggestions['targetFat'] as num?)?.toDouble() ?? 0.0,
+        protein: double.tryParse(_proteinController.text) ?? 0.0,
+        carbs: double.tryParse(_carbsController.text) ?? 0.0,
+        fat: double.tryParse(_fatController.text) ?? 0.0,
       );
     }
     setState(() => _isAiLoading = false);

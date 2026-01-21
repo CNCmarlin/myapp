@@ -9,6 +9,7 @@ import 'package:myapp/models/workout_data.dart';
 import 'package:myapp/services/ai_service.dart';
 import 'package:myapp/services/auth_service.dart';
 
+import '../providers/user_profile_provider.dart';
 import '../services/secure_storage_service.dart';
 
 class AIServiceTestScreen extends StatefulWidget {
@@ -70,9 +71,20 @@ class _AIServiceTestScreenState extends State<AIServiceTestScreen> {
     }
     // --- END DEBUG LOGGING ---
 
+    final userProfile = context.read<UserProfileProvider>().userProfile;
+
+    if (userProfile == null) {
+      setState(() {
+        _responseText = 'TEST FAILED: UserProfile is null.';
+        _isLoading = false;
+      });
+      return;
+    }
+
     final AIWorkoutUpdate? result = await _aiService.processWorkoutUserInput(
       userInput,
       dummyWorkout,
+      userProfile, // 📍 Added the missing 3rd positional argument
     );
 
     if (mounted) {

@@ -63,7 +63,7 @@ class ChatProvider with ChangeNotifier {
 
     final response = await _assistantService.getAssistantResponse(
       prompt: text,
-      history: _messages,
+      history: _messages.reversed.toList(),
       userProfile: userProfile,
       lastWorkout: lastWorkout, // Pass the context
       recentNutritionLogs: recentNutritionLogs, // Pass the context
